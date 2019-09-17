@@ -29,13 +29,13 @@ from flow.networks.highway_ramps import ADDITIONAL_NET_PARAMS
 # SET UP PARAMETERS FOR THE SIMULATION
 
 # number of training iterations
-N_TRAINING_ITERATIONS = 200
+N_TRAINING_ITERATIONS = 100
 # number of rollouts per training iteration
 N_ROLLOUTS = 20
 # number of steps per rollout
 HORIZON = 1500
 # number of parallel workers
-N_CPUS = 11
+N_CPUS = 7
 
 # inflow rate on the highway in vehicles per hour
 HIGHWAY_INFLOW_RATE = 4000
