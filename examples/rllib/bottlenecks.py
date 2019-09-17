@@ -30,6 +30,11 @@ DISABLE_TB = True
 # If set to False, ALINEA will control the ramp meter
 DISABLE_RAMP_METER = True
 
+# Number of cars and percentage of RL cars plus further specifications
+NR_CARS_TOTAL = 14
+PERCENT_RL_CARS = 0.1
+RL_DRIVING_MODE = "obey_safe_speed"  # could also be "aggressive" or so
+
 # We place one autonomous vehicle and 13 human-driven vehicles in the network
 vehicles = VehicleParams()
 vehicles.add(
@@ -42,16 +47,16 @@ vehicles.add(
         speed_mode="obey_safe_speed",
         decel=1.5,
     ),
-    num_vehicles=13)
+    num_vehicles=int(NR_CARS_TOTAL * (1 - PERCENT_RL_CARS)))
 vehicles.add(
     veh_id='rl',
     acceleration_controller=(RLController, {}),
     routing_controller=(ContinuousRouter, {}),
     car_following_params=SumoCarFollowingParams(
-        speed_mode="obey_safe_speed",
+        speed_mode=RL_DRIVING_MODE,
         decel=1.5,
     ),
-    num_vehicles=1)
+    num_vehicles=int(NR_CARS_TOTAL * PERCENT_RL_CARS))
 
 flow_params = dict(
     # name of the experiment
@@ -69,7 +74,7 @@ flow_params = dict(
     # sumo-related parameters (see flow.core.params.SumoParams)
     sim=SumoParams(
         sim_step=0.1,
-        render=False,
+        render=True,
     ),
 
     # environment related parameters (see flow.core.params.EnvParams)
