@@ -32,7 +32,7 @@ DISABLE_RAMP_METER = True
 
 # Number of cars and percentage of RL cars plus further specifications
 NR_CARS_TOTAL = 14
-PERCENT_RL_CARS = 0.1
+PERCENT_RL_CARS = 0.5
 RL_DRIVING_MODE = "obey_safe_speed"  # could also be "aggressive" or so
 
 # We place one autonomous vehicle and 13 human-driven vehicles in the network
@@ -63,7 +63,7 @@ flow_params = dict(
     exp_tag='BottleneckTrainingExperiment',  # was initially 'figure_eight_intersection_control'
 
     # name of the flow environment the experiment is running on
-    env_name='BottleneckEnv',  # was initially 'AccelEnv', must match specific env-class name
+    env_name='BottleneckAccelEnv',  # capability to learn both: acceleration + lane change behavior
 
     # name of the network class the experiment is running on
     network='BottleneckNetwork',  # was initially 'FigureEightNetwork'
@@ -80,14 +80,23 @@ flow_params = dict(
     # environment related parameters (see flow.core.params.EnvParams)
     env=EnvParams(
         horizon=HORIZON,
-        additional_params={  # Dependent on environment
-            "target_velocity": 40,
-            "max_accel": 1,
-            "max_decel": 1,
+        additional_params={ # Adjusted from envs/bottleneck.py
+            # maximum acceleration for autonomous vehicles, in m/s^2
+            "max_accel": 3,
+            # maximum deceleration for autonomous vehicles, in m/s^2
+            "max_decel": 3,
+            # lane change duration for autonomous vehicles, in s. Autonomous vehicles
+            # reject new lane changing commands for this duration after successfully
+            # changing lanes.
             "lane_change_duration": 5,
-            "add_rl_if_exit": False,
-            "disable_tb": DISABLE_TB,
-            "disable_ramp_metering": DISABLE_RAMP_METER
+            # whether the toll booth should be active
+            "disable_tb": True,
+            # whether the ramp meter is active
+            "disable_ramp_metering": True,
+            # velocity to use in reward functions
+            "target_velocity": 30,
+            # if an RL vehicle exits, place it back at the front
+            "add_rl_if_exit": True
         },
     ),
 
