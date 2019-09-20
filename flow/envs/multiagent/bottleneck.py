@@ -37,30 +37,13 @@ ADDITIONAL_RL_ENV_PARAMS = {
 }
 
 class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
-    """BottleneckAccelEnv.
-
-      Environment used to train vehicles to effectively pass through a
-      bottleneck.
+    """Partially observable multi-agent environment for the bottleneck network.
 
       States
-          An observation is the edge position, speed, lane, and edge number of
-          the AV, the distance to and velocity of the vehicles
-          in front and behind the AV for all lanes. Additionally, we pass the
-          density and average velocity of all edges. Finally, we pad with
-          zeros in case an AV has exited the system.
-          Note: the vehicles are arranged in an initial order, so we pad
-          the missing vehicle at its normal position in the order
 
       Actions
-          The action space consist of a list in which the first half
-          is accelerations and the second half is a direction for lane
-          changing that we round
 
       Rewards
-          The reward is the two-norm of the difference between the speed of
-          all vehicles in the network and some desired speed. To this we add
-          a positive reward for moving the vehicles forward, and a penalty to
-          vehicles that lane changing too frequently.
 
       Termination
           A rollout is terminated once the time horizon is reached.
@@ -144,6 +127,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
             obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
 
         return obs
+
+    """All of the code below is untouched."""
 
     def compute_reward(self, rl_actions, **kwargs):
         """See class definition."""
