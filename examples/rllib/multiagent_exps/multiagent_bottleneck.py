@@ -1,11 +1,23 @@
-"""Bottleneck example.
+"""Multi-agent highway with ramps example.
+
+Trains a non-constant number of agents, all sharing the same policy, on the
+highway with ramps network.
+
+Bottleneck example.
 
 Bottleneck in which the actions are specifying a desired velocity
 in a segment of space
 """
+
+try:
+    from ray.rllib.agents.agent import get_agent_class
+except ImportError:
+    from ray.rllib.agents.registry import get_agent_class
 import json
 
 import ray
+from ray import tune
+from ray.rllib.agents.ppo.ppo_policy_graph import PPOPolicyGraph
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -109,7 +121,7 @@ net_params = NetParams(
 
 flow_params = dict(
     # name of the experiment
-    exp_tag="DesiredVelocity",
+    exp_tag="MultiAgentDesiredVelocity",
 
     # name of the flow environment the experiment is running on
     env_name="BottleneckDesiredVelocityEnv",
@@ -161,9 +173,15 @@ flow_params = dict(
     tls=traffic_lights,
 )
 
+# SET UP EXPERIMENT
 
-def setup_exps():
-    """Return the relevant components of an RLlib experiment.
+def setup_exps(flow_params):
+    """Create the relevant components of a multiagent RLlib experiment.
+
+    Parameters
+    ----------
+    flow_params : dict
+        input flow-parameters
 
     Returns
     -------
@@ -174,20 +192,18 @@ def setup_exps():
     dict
         training configuration parameters
     """
-    alg_run = "PPO"
-
+    alg_run = 'PPO'
     agent_cls = get_agent_class(alg_run)
     config = agent_cls._default_config.copy()
-    config["num_workers"] = N_CPUS
-    config["train_batch_size"] = HORIZON * N_ROLLOUTS
-    config["gamma"] = 0.999  # discount rate
-    config["model"].update({"fcnet_hiddens": [64, 64]})
-    config["use_gae"] = True
-    config["lambda"] = 0.97
-    config["kl_target"] = 0.02
-    config["num_sgd_iter"] = 10
-    config['clip_actions'] = False  # FIXME(ev) temporary ray bug
-    config["horizon"] = HORIZON
+    config['num_workers'] = N_CPUS
+    config['train_batch_size'] = HORIZON * N_ROLLOUTS
+    config['simple_optimizer'] = True
+    config['gamma'] = 0.999  # discount rate
+    config['model'].update({'fcnet_hiddens': [32, 32]})
+    config['lr'] = tune.grid_search([1e-5])
+    config['horizon'] = HORIZON
+    config['clip_actions'] = False
+    config['observation_filter'] = 'NoFilter'
 
     # save the flow params for replay
     flow_json = json.dumps(
@@ -195,28 +211,47 @@ def setup_exps():
     config['env_config']['flow_params'] = flow_json
     config['env_config']['run'] = alg_run
 
-    create_env, gym_name = make_create_env(params=flow_params, version=0)
+    create_env, env_name = make_create_env(params=flow_params, version=0)
 
-    # Register as rllib env
-    register_env(gym_name, create_env)
-    return alg_run, gym_name, config
+    # register as rllib env
+    register_env(env_name, create_env)
 
+    # multiagent configuration
+    temp_env = create_env()
+    policy_graphs = {'av': (PPOPolicyGraph,
+                            temp_env.observation_space,
+                            temp_env.action_space,
+                            {})}
 
-if __name__ == "__main__":
-    alg_run, gym_name, config = setup_exps()
-    ray.init(num_cpus=N_CPUS + 1, redirect_output=False)
-    trials = run_experiments({
-        flow_params["exp_tag"]: {
-            "run": alg_run,
-            "env": gym_name,
-            "config": {
-                **config
-            },
-            "checkpoint_freq": 20,
-            "checkpoint_at_end": True,
-            "max_failures": 999,
-            "stop": {
-                "training_iteration": 200,
-            },
+    def policy_mapping_fn(_):
+        return 'av'
+
+    config.update({
+        'multiagent': {
+            'policy_graphs': policy_graphs,
+            'policy_mapping_fn': tune.function(policy_mapping_fn),
+            'policies_to_train': ['av']
         }
+    })
+
+    return alg_run, env_name, config
+
+
+# RUN EXPERIMENT
+
+if __name__ == '__main__':
+    alg_run, env_name, config = setup_exps(flow_params)
+    ray.init(num_cpus=N_CPUS + 1)
+
+    run_experiments({
+        flow_params['exp_tag']: {
+            'run': alg_run,
+            'env': env_name,
+            'checkpoint_freq': 20,
+            'checkpoint_at_end': True,
+            'stop': {
+                'training_iteration': 100
+            },
+            'config': config,
+        },
     })
