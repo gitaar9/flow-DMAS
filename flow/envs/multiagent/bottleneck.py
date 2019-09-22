@@ -47,22 +47,14 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
       States
           An observation is the edge position, speed, lane, and edge number of
           the AV, the distance to and velocity of the vehicles
-          in front and behind the AV for all lanes. Additionally, we pass the
-          density and average velocity of all edges. Finally, we pad with
-          zeros in case an AV has exited the system.
-          Note: the vehicles are arranged in an initial order, so we pad
-          the missing vehicle at its normal position in the order
+          in front and behind the AV for all lanes.
 
       Actions
-          The action space consist of a list in which the first half
-          is accelerations and the second half is a direction for lane
-          changing that we round
+          The action space 1 value for acceleration and 1 for lane changing
 
       Rewards
-          The reward is the two-norm of the difference between the speed of
-          all vehicles in the network and some desired speed. To this we add
-          a positive reward for moving the vehicles forward, and a penalty to
-          vehicles that lane changing too frequently.
+          The reward is the average speed of the edge the agent is currently in combined with the speed of
+          the agent. With some discount for lane changing.
 
       Termination
           A rollout is terminated once the time horizon is reached.
@@ -87,10 +79,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     @property
     def observation_space(self):
         """See class definition."""
-        # num_edges = len(self.k.network.get_edge_list())
-        # num_rl_veh = self.num_rl
-        # num_obs = 2 * num_edges + 4 * MAX_LANES * self.scaling \
-        #           * num_rl_veh + 4 * num_rl_veh
         num_obs = 4 * MAX_LANES * self.scaling + 4
 
         return Box(low=0, high=1, shape=(num_obs,), dtype=np.float32)
