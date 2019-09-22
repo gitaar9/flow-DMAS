@@ -17,7 +17,7 @@ source activate flow 								#conda activate flow
 pip install -e .
 #scripts/setup_sumo_ubuntu1604.sh 						#For ubuntu version 16
 scripts/setup_sumo_ubuntu1804.sh  						#For ubuntu version 18
-python3 examples/sumo/sugiyama.py
+python3 examples/rllib/multiagent_exps/multiagent_bottleneck.py
 
 #The following command can be used to remove the conda environment, if so desired:
 #conda env remove -n flow
