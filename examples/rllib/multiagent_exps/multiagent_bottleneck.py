@@ -38,7 +38,7 @@ from flow.controllers import RLController, ContinuousRouter, \
 # time horizon of a single rollout
 HORIZON = 1000
 # number of parallel workers
-N_CPUS = 2
+N_CPUS = 4
 # number of rollouts per training iteration
 N_ROLLOUTS = N_CPUS * 4
 
@@ -61,7 +61,7 @@ vehicles.add(
     ),
     num_vehicles=1 * SCALING)
 vehicles.add(
-    veh_id="followerstopper",
+    veh_id="rl",
     acceleration_controller=(RLController, {}),
     lane_change_controller=(SimLaneChangeController, {}),
     routing_controller=(ContinuousRouter, {}),
@@ -102,7 +102,7 @@ inflow.add(
     departLane="random",
     departSpeed=10)
 inflow.add(
-    veh_type="followerstopper",
+    veh_type="rl",
     edge="1",
     vehs_per_hour=flow_rate * AV_FRAC,
     departLane="random",

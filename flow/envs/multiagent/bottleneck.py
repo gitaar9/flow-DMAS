@@ -37,6 +37,7 @@ ADDITIONAL_RL_ENV_PARAMS = {
     # "add_rl_if_exit": True,
 }
 
+
 class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     """BottleneckAccelEnv.
 
@@ -201,21 +202,21 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     direction = max(-1, min(direction, 1))                         # Clamp between -1 and 1
                     self.k.vehicle.apply_lane_change(str(rl_id), direction)
 
-    def additional_command(self):
-        """See parent class.
-
-        Define which vehicles are observed for visualization purposes.
-        """
-        super().additional_command()
-        for rl_id in self.k.vehicle.get_rl_ids():
-            # leader
-            lead_id = self.k.vehicle.get_leader(rl_id)
-            if lead_id:
-                self.k.vehicle.set_observed(lead_id)
-            # follower
-            follow_id = self.k.vehicle.get_follower(rl_id)
-            if follow_id:
-                self.k.vehicle.set_observed(follow_id)
+    # def additional_command(self):
+    #     """See parent class.
+    #
+    #     Define which vehicles are observed for visualization purposes.
+    #     """
+    #     super().additional_command()
+    #     for rl_id in self.k.vehicle.get_rl_ids():
+    #         # leader
+    #         lead_id = self.k.vehicle.get_leader(rl_id)
+    #         if lead_id:
+    #             self.k.vehicle.set_observed(lead_id)
+    #         # follower
+    #         follow_id = self.k.vehicle.get_follower(rl_id)
+    #         if follow_id:
+    #             self.k.vehicle.set_observed(follow_id)
 
     # def additional_command(self):
     #     """Reintroduce any RL vehicle that may have exited in the last step.
