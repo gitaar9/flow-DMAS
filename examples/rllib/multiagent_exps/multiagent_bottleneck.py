@@ -1,13 +1,4 @@
-"""Multi-agent highway with ramps example.
-
-Trains a non-constant number of agents, all sharing the same policy, on the
-highway with ramps network.
-
-Bottleneck example.
-
-Bottleneck in which the actions are specifying a desired velocity
-in a segment of space
-"""
+"""Multi-agent bottlenecks."""
 
 try:
     from ray.rllib.agents.agent import get_agent_class
