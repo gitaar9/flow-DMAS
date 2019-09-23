@@ -37,8 +37,9 @@ ADDITIONAL_RL_ENV_PARAMS = {
     # "add_rl_if_exit": True,
 }
 
+
 class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
-    """BottleneckAccelEnv.
+    """BottleneckMultiAgentEnv.
 
       Environment used to train vehicles to effectively pass through a
       bottleneck.
@@ -46,22 +47,14 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
       States
           An observation is the edge position, speed, lane, and edge number of
           the AV, the distance to and velocity of the vehicles
-          in front and behind the AV for all lanes. Additionally, we pass the
-          density and average velocity of all edges. Finally, we pad with
-          zeros in case an AV has exited the system.
-          Note: the vehicles are arranged in an initial order, so we pad
-          the missing vehicle at its normal position in the order
+          in front and behind the AV for all lanes.
 
       Actions
-          The action space consist of a list in which the first half
-          is accelerations and the second half is a direction for lane
-          changing that we round
+          The action space 1 value for acceleration and 1 for lane changing
 
       Rewards
-          The reward is the two-norm of the difference between the speed of
-          all vehicles in the network and some desired speed. To this we add
-          a positive reward for moving the vehicles forward, and a penalty to
-          vehicles that lane changing too frequently.
+          The reward is the average speed of the edge the agent is currently in combined with the speed of
+          the agent. With some discount for lane changing.
 
       Termination
           A rollout is terminated once the time horizon is reached.
@@ -86,10 +79,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     @property
     def observation_space(self):
         """See class definition."""
-        # num_edges = len(self.k.network.get_edge_list())
-        # num_rl_veh = self.num_rl
-        # num_obs = 2 * num_edges + 4 * MAX_LANES * self.scaling \
-        #           * num_rl_veh + 4 * num_rl_veh
         num_obs = 4 * MAX_LANES * self.scaling + 4
 
         return Box(low=0, high=1, shape=(num_obs,), dtype=np.float32)
@@ -201,21 +190,21 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     direction = max(-1, min(direction, 1))                         # Clamp between -1 and 1
                     self.k.vehicle.apply_lane_change(str(rl_id), direction)
 
-    def additional_command(self):
-        """See parent class.
-
-        Define which vehicles are observed for visualization purposes.
-        """
-        super().additional_command()
-        for rl_id in self.k.vehicle.get_rl_ids():
-            # leader
-            lead_id = self.k.vehicle.get_leader(rl_id)
-            if lead_id:
-                self.k.vehicle.set_observed(lead_id)
-            # follower
-            follow_id = self.k.vehicle.get_follower(rl_id)
-            if follow_id:
-                self.k.vehicle.set_observed(follow_id)
+    # def additional_command(self):
+    #     """See parent class.
+    #
+    #     Define which vehicles are observed for visualization purposes.
+    #     """
+    #     super().additional_command()
+    #     for rl_id in self.k.vehicle.get_rl_ids():
+    #         # leader
+    #         lead_id = self.k.vehicle.get_leader(rl_id)
+    #         if lead_id:
+    #             self.k.vehicle.set_observed(lead_id)
+    #         # follower
+    #         follow_id = self.k.vehicle.get_follower(rl_id)
+    #         if follow_id:
+    #             self.k.vehicle.set_observed(follow_id)
 
     # def additional_command(self):
     #     """Reintroduce any RL vehicle that may have exited in the last step.
