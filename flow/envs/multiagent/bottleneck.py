@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 from gym.spaces import Box
 
+from flow.core import rewards
 from flow.envs import BottleneckEnv
 from flow.envs.multiagent import MultiEnv
 
@@ -36,14 +37,24 @@ ADDITIONAL_RL_ENV_PARAMS = {
     # "add_rl_if_exit": True,
 }
 
+
 class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
-    """Partially observable multi-agent environment for the bottleneck network.
+    """BottleneckAccelEnv.
+
+      Environment used to train vehicles to effectively pass through a
+      bottleneck.
 
       States
+          An observation is the edge position, speed, lane, and edge number of
+          the AV, the distance to and velocity of the vehicles
+          in front and behind the AV for all lanes.
 
       Actions
+          The action space 1 value for acceleration and 1 for lane changing
 
       Rewards
+          The reward is the average speed of the edge the agent is currently in combined with the speed of
+          the agent. With some discount for lane changing.
 
       Termination
           A rollout is terminated once the time horizon is reached.
@@ -57,7 +68,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     'Environment parameter "{}" not supplied'.format(p))
 
         super().__init__(env_params, sim_params, network, simulator)
-        self.add_rl_if_exit = env_params.get_additional_param("add_rl_if_exit")
+        # self.add_rl_if_exit = env_params.get_additional_param("add_rl_if_exit")
         # self.num_rl = deepcopy(self.initial_vehicles.num_rl_vehicles)
         # Following didn't work since simulation is initially empty (w/o vehicles,
         # which seems to be special case scenario):
@@ -68,10 +79,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     @property
     def observation_space(self):
         """See class definition."""
-        num_edges = len(self.k.network.get_edge_list())
-        # num_rl_veh = self.num_rl
-        # num_obs = 2 * num_edges + 4 * MAX_LANES * self.scaling \
-        #           * num_rl_veh + 4 * num_rl_veh
         num_obs = 4 * MAX_LANES * self.scaling + 4
 
         return Box(low=0, high=1, shape=(num_obs,), dtype=np.float32)
@@ -80,7 +87,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         """See class definition."""
         obs = {}
         headway_scale = 1000
-
 
         for rl_id in self.k.vehicle.get_rl_ids():
             # Get own normalized x location, speed, lane and edge
@@ -128,15 +134,30 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
         return obs
 
-    """All of the code below is untouched."""
-
     def compute_reward(self, rl_actions, **kwargs):
         """See class definition."""
-        num_rl = self.k.vehicle.num_rl_vehicles
-        lane_change_acts = np.abs(np.round(rl_actions[1::2])[:num_rl])
-        return (rewards.desired_velocity(self) + rewards.rl_forward_progress(
-            self, gain=0.1) - rewards.boolean_action_penalty(
-            lane_change_acts, gain=1.0))
+        return_rewards = {}
+        # in the warmup steps, rl_actions is None
+        if rl_actions:
+            # for rl_id, actions in rl_actions.items():
+            for rl_id in self.k.vehicle.get_rl_ids():
+
+                reward = 0
+                # If there is a collision all agents get no reward
+                if not kwargs['fail']:
+                    # Reward desired velocity in own edge
+                    edge_num = self.k.vehicle.get_edge(rl_id)
+                    reward += rewards.desired_velocity(self, fail=kwargs['fail'], edge_list=[edge_num])
+
+                    # Reward own speed
+                    reward += self.k.vehicle.get_speed(rl_id) * 0.1
+
+                    # Punish own lane changing
+                    if rl_id in rl_actions:
+                        reward -= abs(rl_actions[rl_id][1])
+
+                return_rewards[rl_id] = reward
+        return return_rewards
 
     @property
     def action_space(self):
@@ -144,68 +165,73 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         max_decel = self.env_params.additional_params["max_decel"]
         max_accel = self.env_params.additional_params["max_accel"]
 
-        lb = [-abs(max_decel), -1] * self.num_rl
-        ub = [max_accel, 1] * self.num_rl
+        lb = [-abs(max_decel), -1]                                  # * self.num_rl
+        ub = [max_accel, 1]                                         # * self.num_rl
 
         return Box(np.array(lb), np.array(ub), dtype=np.float32)
 
-    def _apply_rl_actions(self, actions):
+    def _apply_rl_actions(self, rl_actions):
         """
         See parent class.
-
-        Takes a tuple and applies a lane change or acceleration. if a lane
-        change is applied, don't issue any commands
-        for the duration of the lane change and return negative rewards
-        for actions during that lane change. if a lane change isn't applied,
-        and sufficient time has passed, issue an acceleration like normal.
         """
-        num_rl = self.k.vehicle.num_rl_vehicles
-        acceleration = actions[::2][:num_rl]
-        direction = np.round(actions[1::2])[:num_rl]
 
-        # re-arrange actions according to mapping in observation space
-        sorted_rl_ids = sorted(self.k.vehicle.get_rl_ids(),
-                               key=self.k.vehicle.get_x_by_id)
 
-        # represents vehicles that are allowed to change lanes
-        non_lane_changing_veh = [
-            self.time_counter <= self.env_params.additional_params[
-                'lane_change_duration'] + self.k.vehicle.get_last_lc(veh_id)
-            for veh_id in sorted_rl_ids]
+        """See class definition."""
+        # in the warmup steps, rl_actions is None
+        if rl_actions:
+            for rl_id, actions in rl_actions.items():
+                acceleration = actions[0]
+                direction = actions[1]
 
-        # vehicle that are not allowed to change have their directions set to 0
-        direction[non_lane_changing_veh] = \
-            np.array([0] * sum(non_lane_changing_veh))
+                self.k.vehicle.apply_acceleration(rl_id, acceleration)
 
-        self.k.vehicle.apply_acceleration(sorted_rl_ids, acc=acceleration)
-        self.k.vehicle.apply_lane_change(sorted_rl_ids, direction=direction)
+                if self.time_counter <= self.env_params.additional_params['lane_change_duration'] + self.k.vehicle.get_last_lc(rl_id):
+                    direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
+                    direction = max(-1, min(direction, 1))                         # Clamp between -1 and 1
+                    self.k.vehicle.apply_lane_change(str(rl_id), direction)
 
-    def additional_command(self):
-        """Reintroduce any RL vehicle that may have exited in the last step.
+    # def additional_command(self):
+    #     """See parent class.
+    #
+    #     Define which vehicles are observed for visualization purposes.
+    #     """
+    #     super().additional_command()
+    #     for rl_id in self.k.vehicle.get_rl_ids():
+    #         # leader
+    #         lead_id = self.k.vehicle.get_leader(rl_id)
+    #         if lead_id:
+    #             self.k.vehicle.set_observed(lead_id)
+    #         # follower
+    #         follow_id = self.k.vehicle.get_follower(rl_id)
+    #         if follow_id:
+    #             self.k.vehicle.set_observed(follow_id)
 
-        This is used to maintain a constant number of RL vehicle in the system
-        at all times, in order to comply with a fixed size observation and
-        action space.
-        """
-        super().additional_command()
-        # if the number of rl vehicles has decreased introduce it back in
-        num_rl = self.k.vehicle.num_rl_vehicles
-        if num_rl != len(self.rl_id_list) and self.add_rl_if_exit:
-            # find the vehicles that have exited
-            diff_list = list(
-                set(self.rl_id_list).difference(self.k.vehicle.get_rl_ids()))
-            for rl_id in diff_list:
-                # distribute rl cars evenly over lanes
-                lane_num = self.rl_id_list.index(rl_id) % \
-                           MAX_LANES * self.scaling
-                # reintroduce it at the start of the network
-                try:
-                    self.k.vehicle.add(
-                        veh_id=rl_id,
-                        edge='1',
-                        type_id=str('rl'),
-                        lane=str(lane_num),
-                        pos="0",
-                        speed="max")
-                except Exception:
-                    pass
+    # def additional_command(self):
+    #     """Reintroduce any RL vehicle that may have exited in the last step.
+    #
+    #     This is used to maintain a constant number of RL vehicle in the system
+    #     at all times, in order to comply with a fixed size observation and
+    #     action space.
+    #     """
+    #     super().additional_command()
+    #     # if the number of rl vehicles has decreased introduce it back in
+    #     num_rl = self.k.vehicle.num_rl_vehicles
+    #     if num_rl != len(self.rl_id_list) and self.add_rl_if_exit:
+    #         # find the vehicles that have exited
+    #         diff_list = list(
+    #             set(self.rl_id_list).difference(self.k.vehicle.get_rl_ids()))
+    #         for rl_id in diff_list:
+    #             # distribute rl cars evenly over lanes
+    #             lane_num = self.rl_id_list.index(rl_id) % \
+    #                        MAX_LANES * self.scaling
+    #             # reintroduce it at the start of the network
+    #             try:
+    #                 self.k.vehicle.add(
+    #                     veh_id=rl_id,
+    #                     edge='1',
+    #                     type_id=str('rl'),
+    #                     lane=str(lane_num),
+    #                     pos="0",
+    #                     speed="max")
+    #             except Exception:
+    #                 pass
