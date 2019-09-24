@@ -39,7 +39,7 @@ ADDITIONAL_RL_ENV_PARAMS = {
 
 
 class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
-    """BottleneckAccelEnv.
+    """BottleneckMultiAgentEnv.
 
       Environment used to train vehicles to effectively pass through a
       bottleneck.
