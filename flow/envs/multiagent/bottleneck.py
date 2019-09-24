@@ -187,7 +187,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                 if self.time_counter <= self.env_params.additional_params[
                     'lane_change_duration'] + self.k.vehicle.get_last_lc(rl_id):
                     # direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
-                    direction = max(-1, min(direction, 1))                         # Clamp between -1 and 1
+                    direction = max(-1, min(round(direction), 1))                 # Clamp between -1 and 1
                     self.k.vehicle.apply_lane_change(str(rl_id), direction)
 
     # def additional_command(self):
