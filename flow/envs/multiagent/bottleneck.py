@@ -165,8 +165,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         max_decel = self.env_params.additional_params["max_decel"]
         max_accel = self.env_params.additional_params["max_accel"]
 
-        lb = [-abs(max_decel), -1]                                  # * self.num_rl
-        ub = [max_accel, 1]                                         # * self.num_rl
+        lb = [-abs(max_decel), -1]  # * self.num_rl
+        ub = [max_accel, 1]  # * self.num_rl
 
         return Box(np.array(lb), np.array(ub), dtype=np.float32)
 
@@ -174,7 +174,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         """
         See parent class.
         """
-
 
         """See class definition."""
         # in the warmup steps, rl_actions is None
@@ -185,9 +184,10 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
                 self.k.vehicle.apply_acceleration(rl_id, acceleration)
 
-                if self.time_counter <= self.env_params.additional_params['lane_change_duration'] + self.k.vehicle.get_last_lc(rl_id):
-                    direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
-                    direction = max(-1, min(direction, 1))                         # Clamp between -1 and 1
+                if self.time_counter <= self.env_params.additional_params[
+                    'lane_change_duration'] + self.k.vehicle.get_last_lc(rl_id):
+                    # direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
+                    direction = max(-1, min(round(direction), 1))                 # Clamp between -1 and 1
                     self.k.vehicle.apply_lane_change(str(rl_id), direction)
 
     # def additional_command(self):

@@ -1,4 +1,4 @@
-"""Multi-agent bottlenecks."""
+"""Multi-agent bottleneck.
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -64,9 +64,20 @@ vehicles.add(
     ),
     num_vehicles=1 * SCALING)
 
-controlled_segments = [("1", 1, False), ("2", 2, True), ("3", 2, True),
-                       ("4", 2, True), ("5", 1, False)]
-num_observed_segments = [("1", 1), ("2", 3), ("3", 3), ("4", 3), ("5", 1)]
+#Original
+#controlled_segments = [("1", 1, False), ("2", 2, True), ("3", 2, True),
+#                       ("4", 2, True), ("5", 1, False)]
+
+#Daniels proposal:
+controlled_segments = [("1", 3, True), ("2", 3, True), ("3", 3, True),
+                       ("4", 3, True), ("5", 3, True)]
+
+#Original
+# num_observed_segments = [("1", 1), ("2", 3), ("3", 3), ("4", 3), ("5", 1)]
+
+#Daniels proposal:
+num_observed_segments = [("1", 3), ("2", 3), ("3", 3), ("4", 3), ("5", 3)]
+
 additional_env_params = {
     "target_velocity": 40,
     "disable_tb": True,
@@ -133,7 +144,7 @@ flow_params = dict(
 
     # environment related parameters (see flow.core.params.EnvParams)
     env=EnvParams(
-        warmup_steps=40,
+        warmup_steps=0,  # Originally was set to 40, decreased to 0-
         sims_per_step=1,
         horizon=HORIZON,
         additional_params=additional_env_params,
