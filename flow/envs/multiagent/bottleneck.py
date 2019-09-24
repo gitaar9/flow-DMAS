@@ -33,8 +33,6 @@ NUM_VEHICLE_NORM = 20
 ADDITIONAL_RL_ENV_PARAMS = {
     # velocity to use in reward functions
     "target_velocity": 30,
-    # if an RL vehicle exits, place it back at the front
-    # "add_rl_if_exit": True,
 }
 
 
@@ -68,19 +66,12 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     'Environment parameter "{}" not supplied'.format(p))
 
         super().__init__(env_params, sim_params, network, simulator)
-        # self.add_rl_if_exit = env_params.get_additional_param("add_rl_if_exit")
-        # self.num_rl = deepcopy(self.initial_vehicles.num_rl_vehicles)
-        # Following didn't work since simulation is initially empty (w/o vehicles,
-        # which seems to be special case scenario):
-        self.rl_id_list = deepcopy(self.initial_vehicles.get_rl_ids())
-        # self.rl_id_list = [('rl_' + str(i)) for i in range(network.vehicles.num_rl_vehicles)]
         self.max_speed = self.k.network.max_speed()
 
     @property
     def observation_space(self):
         """See class definition."""
         num_obs = 4 * MAX_LANES * self.scaling + 4
-
         return Box(low=0, high=1, shape=(num_obs,), dtype=np.float32)
 
     def get_state(self):
@@ -184,54 +175,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
                 self.k.vehicle.apply_acceleration(rl_id, acceleration)
 
-                if self.time_counter <= self.env_params.additional_params[
-                    'lane_change_duration'] + self.k.vehicle.get_last_lc(rl_id):
+                if self.time_counter <= self.env_params.additional_params['lane_change_duration'] \
+                        + self.k.vehicle.get_last_lc(rl_id):
                     # direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
-                    direction = max(-1, min(round(direction), 1))                 # Clamp between -1 and 1
-                    self.k.vehicle.apply_lane_change(str(rl_id), direction)
-
-    # def additional_command(self):
-    #     """See parent class.
-    #
-    #     Define which vehicles are observed for visualization purposes.
-    #     """
-    #     super().additional_command()
-    #     for rl_id in self.k.vehicle.get_rl_ids():
-    #         # leader
-    #         lead_id = self.k.vehicle.get_leader(rl_id)
-    #         if lead_id:
-    #             self.k.vehicle.set_observed(lead_id)
-    #         # follower
-    #         follow_id = self.k.vehicle.get_follower(rl_id)
-    #         if follow_id:
-    #             self.k.vehicle.set_observed(follow_id)
-
-    # def additional_command(self):
-    #     """Reintroduce any RL vehicle that may have exited in the last step.
-    #
-    #     This is used to maintain a constant number of RL vehicle in the system
-    #     at all times, in order to comply with a fixed size observation and
-    #     action space.
-    #     """
-    #     super().additional_command()
-    #     # if the number of rl vehicles has decreased introduce it back in
-    #     num_rl = self.k.vehicle.num_rl_vehicles
-    #     if num_rl != len(self.rl_id_list) and self.add_rl_if_exit:
-    #         # find the vehicles that have exited
-    #         diff_list = list(
-    #             set(self.rl_id_list).difference(self.k.vehicle.get_rl_ids()))
-    #         for rl_id in diff_list:
-    #             # distribute rl cars evenly over lanes
-    #             lane_num = self.rl_id_list.index(rl_id) % \
-    #                        MAX_LANES * self.scaling
-    #             # reintroduce it at the start of the network
-    #             try:
-    #                 self.k.vehicle.add(
-    #                     veh_id=rl_id,
-    #                     edge='1',
-    #                     type_id=str('rl'),
-    #                     lane=str(lane_num),
-    #                     pos="0",
-    #                     speed="max")
-    #             except Exception:
-    #                 pass
+                    # direction =  max(-1, min(round(direction), 1))                # Clamp between -1 and 1
+                    self.k.vehicle.apply_lane_change(str(rl_id), round(direction))

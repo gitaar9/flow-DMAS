@@ -66,27 +66,11 @@ vehicles.add(
     ),
     num_vehicles=1 * SCALING)
 
-#Original
-#controlled_segments = [("1", 1, False), ("2", 2, True), ("3", 2, True),
-#                       ("4", 2, True), ("5", 1, False)]
-
-#Daniels proposal:
-controlled_segments = [("1", 3, True), ("2", 3, True), ("3", 3, True),
-                       ("4", 3, True), ("5", 3, True)]
-
-#Original
-# num_observed_segments = [("1", 1), ("2", 3), ("3", 3), ("4", 3), ("5", 1)]
-
-#Daniels proposal:
-num_observed_segments = [("1", 3), ("2", 3), ("3", 3), ("4", 3), ("5", 3)]
-
 additional_env_params = {
     "target_velocity": 40,
     "disable_tb": True,
     "disable_ramp_metering": True,
-    "controlled_segments": controlled_segments,
     "symmetric": False,
-    "observed_segments": num_observed_segments,
     "reset_inflow": False,
     "lane_change_duration": 5,
     "max_accel": 3,
@@ -146,7 +130,7 @@ flow_params = dict(
 
     # environment related parameters (see flow.core.params.EnvParams)
     env=EnvParams(
-        warmup_steps=0,  # Originally was set to 40, decreased to 0-
+        warmup_steps=40,
         sims_per_step=1,
         horizon=HORIZON,
         additional_params=additional_env_params,
@@ -177,8 +161,8 @@ flow_params = dict(
     tls=traffic_lights,
 )
 
-# SET UP EXPERIMENT
 
+# SET UP EXPERIMENT
 def setup_exps(flow_params):
     """Create the relevant components of a multiagent RLlib experiment.
 
@@ -201,13 +185,13 @@ def setup_exps(flow_params):
     config = agent_cls._default_config.copy()
     config['num_workers'] = N_CPUS
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
-    config['simple_optimizer'] = True
     config['gamma'] = 0.999  # discount rate
-    config['model'].update({'fcnet_hiddens': [32, 32]})
-    config['lr'] = tune.grid_search([1e-5])
-    config['horizon'] = HORIZON
+    config['model'].update({'fcnet_hiddens': [64, 64]})
+    config['lr'] = 5e-5  # tune.grid_search([1e-5])
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
+    config['simple_optimizer'] = True
+    config['horizon'] = HORIZON
 
     # save the flow params for replay
     flow_json = json.dumps(
