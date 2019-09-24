@@ -1,4 +1,5 @@
 """Multi-agent bottleneck.
+
 """
 
 try:
