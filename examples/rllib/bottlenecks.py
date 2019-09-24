@@ -23,7 +23,7 @@ HORIZON = 1500
 # number of rollouts per training iteration
 N_ROLLOUTS = 20
 # number of parallel workers
-N_CPUS = 2
+N_CPUS = 3
 
 DISABLE_TB = True
 
