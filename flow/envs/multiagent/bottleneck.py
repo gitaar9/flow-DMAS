@@ -99,18 +99,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         features_per_car = 3
         lanes_perc_around = 1
 
-        for veh_id in self.k.vehicle.get_ids():
-            print('#########')
-            print('ID:\t' + veh_id)
-            print('X-pos:\t' + str(self.k.vehicle.get_x_by_id(veh_id)))
-            print('Label\t' + str(self.get_label(veh_id)))
-            print('Speed:\t' + str(self.k.vehicle.get_speed(veh_id)))
-            print('Lane\t' + str(self.k.vehicle.get_lane(veh_id)))
-            if int(self.get_label(veh_id)) == 2:
-                print('Headway:')
-                print(self.k.vehicle.get_lane_headways(veh_id, error=1000))
-            print('#########')
-
         #for id_label in self.k.vehicle.get_ids():
         #    print('ID: ' + id_label + ' x: ' + str(self.k.vehicle.get_x_by_id(id_label)) + ' edge: ' +
         #          self.k.vehicle.get_edge(veh_id=id_label))
@@ -124,10 +112,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                 self_representation = [veh_x_pos,                           # Car's current x-position along the road
                                        self.k.vehicle.get_speed(veh_id),    # Car's current speed
                                        self.k.network.speed_limit(edge)]    # How fast car may drive (reference value)
-
-                print('Self:')
-                print(self_representation)
-                print('Lane: ' + str(lane))
 
                 others_representation = []                                  # Representation of surrounding vehicles
 
@@ -146,31 +130,18 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                                             leading_cars_dist,
                                             leading_cars_speed))
 
-                print('Zipped headway:')
-                print(headway_cars_map)
-
                 for l in range(lane-lanes_perc_around, lane+lanes_perc_around+1):  # Interval +/- 1 around rl car's lane
                     if 0 <= l < self.k.network.num_lanes(edge):
-                        print('lane: ' + str(l))
                         # Valid lane value (=lane value inside set of existing lanes)
                         if headway_cars_map[l][0] == l:
                             # There is a car on this lane in front since lane-value in map is not equal to error-code
                             others_representation.extend(headway_cars_map[l][1:])  # Add [idX, distX, speedX]
-                            print('Adding car: ', end='\t')
-                            print(headway_cars_map[l][:])
                         else:
-                            print('Adding no car there... Lane: ' + str(l))
                             # There is no car in respective lane in front of rl car since lane-value == error-code
                             others_representation.extend([0., 1000, float(self.k.network.max_speed())])
                     else:
                         # Lane to left/right does not exist. Pad values with -1.'s
                         others_representation.extend([-1.] * features_per_car)
-                        print('Lane ' + str(l) + ' does not exist.')
-
-                print('Headway ids:')
-                print(leading_cars_ids)
-                print('Representation others - front:')
-                print(others_representation)
 
                 ### Tailway ###
 
@@ -187,48 +158,25 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                                             following_cars_dist,
                                             following_cars_speed))
 
-                print('Zipped tailway:')
-                print(tailway_cars_map)
-
 
                 for l in range(lane-lanes_perc_around, lane+lanes_perc_around+1):  # Interval +/- 1 around rl car's lane
                     if 0 <= l < self.k.network.num_lanes(edge):
-                        print('lane: ' + str(l))
                         # Valid lane value (=lane value inside set of existing lanes)
                         if tailway_cars_map[l][0] == l:
                             # There is a car on this lane behind since lane-value in map is not equal to error-code
                             others_representation.extend(tailway_cars_map[l][1:])  # Add [idX, distX, speedX]
-                            print('Adding car: ', end='\t')
-                            print(tailway_cars_map[l][:])
                         else:
-                            print('Adding no car there... Lane: ' + str(l))
                             # There is no car in respective lane behind rl car since lane-value == error-code
                             others_representation.extend([0., -1000, 0])
                     else:
                         # Lane to left/right does not exist. Pad values with -1.'s
                         others_representation.extend([-1.] * features_per_car)
-                        print('Lane ' + str(l) + ' does not exist.')
-
-                print('Following ids:')
-                print(following_cars_ids)
-
-                print('Others:')
-                print(others_representation)
 
                 # Merge two lists and transform to array
                 self_representation.extend(others_representation)
                 observation_arr = np.asarray(self_representation, dtype=float)
 
-                print('Merged:')
-                print(self_representation)
-
-                print('Arr:')
-                print(observation_arr)
-
                 obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
-
-        print('#####STATES#####')
-        print(obs)
 
         ##############################################################
         ### fixme: remove again
