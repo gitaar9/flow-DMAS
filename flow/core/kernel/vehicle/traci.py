@@ -473,6 +473,13 @@ class TraCIVehicle(KernelVehicle):
         num_outflow = self._num_arrived[-int(time_span / self.sim_step):]
         return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
 
+    def get_rl_outflow_rate(self, time_span):
+        """See parent class."""
+
+        # TODO: NEEDS IMPLEMENTATION
+
+        raise NotImplementedError
+
     def get_num_arrived(self):
         """See parent class."""
         if len(self._num_arrived) > 0:

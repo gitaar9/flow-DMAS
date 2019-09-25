@@ -77,7 +77,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         self.max_speed = self.k.network.max_speed()
 
         self.nr_self_perc_features = 3  # Nr of features an rl car perceives from itself
-        self.perc_lanes_around = 1     # Nr of lanes the car perceives around its own
+        self.perc_lanes_around = 1      # Nr of lanes the car perceives around its own lane
         self.features_per_car = 3       # Nr of features the rl car observes per other car
 
     @property
@@ -190,7 +190,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
         # FIXME: change to RL outflow rate, later
         reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
-        print('Reward: ' + str(reward) + ' after ' + str(self.sim_step) + ' sim steps.')
+        reward *= 100  # Make positive behavior even more rewarding
+        print('Reward: ' + str(reward))
 
         # This reward applies to all vehicles.
         # TODO: maybe augment reward computation later to introduce car-specific terms.
