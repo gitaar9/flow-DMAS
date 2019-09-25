@@ -180,3 +180,10 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     # direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
                     # direction =  max(-1, min(round(direction), 1))                # Clamp between -1 and 1
                     self.k.vehicle.apply_lane_change(str(rl_id), round(direction))
+
+
+class BottlenecFlowRewardkMultiAgentEnv(BottleneckMultiAgentEnv):
+    def compute_reward(self, rl_actions, **kwargs):
+        """Average outflow over last 10 steps, divided 2000 * scaling."""
+        reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        return {rl_id: reward for rl_id in self.k.vehicle.get_rl_ids()} if rl_actions else {}
