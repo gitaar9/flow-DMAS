@@ -182,7 +182,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     self.k.vehicle.apply_lane_change(str(rl_id), round(direction))
 
 
-class BottlenecFlowRewardkMultiAgentEnv(BottleneckMultiAgentEnv):
+class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
     def compute_reward(self, rl_actions, **kwargs):
         """Average outflow over last 10 steps, divided 2000 * scaling."""
         reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)

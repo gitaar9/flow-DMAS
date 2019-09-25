@@ -112,7 +112,7 @@ flow_params = dict(
     exp_tag="MultiAgentDesiredVelocity",
 
     # name of the flow environment the experiment is running on
-    env_name="BottleneckMultiAgentEnv",
+    env_name="BottleneckFlowRewardMultiAgentEnv",
 
     # name of the network class the experiment is running on
     network="BottleneckNetwork",
@@ -238,8 +238,9 @@ if __name__ == '__main__':
             'checkpoint_freq': 20,
             'checkpoint_at_end': True,
             'stop': {
-                'training_iteration': 100
+                'training_iteration': 500
             },
             'config': config,
+            'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
         },
     })
