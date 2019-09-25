@@ -371,6 +371,7 @@ class Env(gym.Env):
 
             # stop collecting new simulation steps if there is a collision
             if crash:
+                print('#####CRASH!!!#####')
                 break
 
             # render a frame
