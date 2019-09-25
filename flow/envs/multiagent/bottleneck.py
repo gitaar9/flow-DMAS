@@ -160,7 +160,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                                             following_cars_dist,
                                             following_cars_speed))
 
-
                 for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
                     if 0 <= l < self.k.network.num_lanes(edge):
                         # Valid lane value (=lane value inside set of existing lanes)
@@ -174,7 +173,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                         # Lane to left/right does not exist. Pad values with -1.'s
                         others_representation.extend([-1.] * self.features_per_car)
 
-                # Merge two lists and transform to array
+                # Merge two lists (self-representation & representation of surrounding lanes/cars) and transform to array
                 self_representation.extend(others_representation)
                 observation_arr = np.asarray(self_representation, dtype=float)
 
@@ -183,21 +182,22 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
-        #"""See class definition."""
+        """(RL-)Outflow rate over last ten seconds normalized to max of 1."""
         return_rewards = {}
 
-        """Outflow rate over last ten seconds normalized to max of 1."""
-
-        # FIXME: change to RL outflow rate, later
         reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
-        reward *= 100  # Make positive behavior even more rewarding
-        print('Reward: ' + str(reward))
+        # FIXME: Enable following line to introduce reward based on RL(-only)-outflow rate; Disable the above line:
+        # reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
-        # This reward applies to all vehicles.
+        reward *= 100  # Make positive behavior even more rewarding
+        # print('Reward: ' + str(reward))
+
+        # This (rl-)outflow-rate-based reward applies to all rl vehicles individually. Assign to each:
         # TODO: maybe augment reward computation later to introduce car-specific terms.
-        #  Main focus shall remain RL outflow rate; Policies will be learned to reach that goal eventually
+        #  Main focus shall remain on RL outflow rate; Policies will be learned to reach that goal eventually
         for rl_id in self.k.vehicle.get_rl_ids():
             if 'rl' in rl_id:
+                # Make sure reward for flow-simulated vehicles does not get returned
                 return_rewards[rl_id] = reward
 
         return return_rewards
