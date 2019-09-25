@@ -76,12 +76,20 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         # self.rl_id_list = [('rl_' + str(i)) for i in range(network.vehicles.num_rl_vehicles)]
         self.max_speed = self.k.network.max_speed()
 
+        self.nr_self_perc_features = 3  # Nr of features an rl car perceives from itself
+        self.perc_lanes_around = 1     # Nr of lanes the car perceives around its own
+        self.features_per_car = 3       # Nr of features the rl car observes per other car
+
     @property
     def observation_space(self):
-        """See class definition."""
-        num_obs = 4 * MAX_LANES * self.scaling + 4
+        """See class definition. 2 = headway + tailway """
 
-        return Box(low=0, high=1, shape=(num_obs,), dtype=np.float32)
+        perceived_lanes = 2 * self.perc_lanes_around + 1                    # 2*sides + own lane
+        perceived_cars = 2 * perceived_lanes                                # front + back
+        perceived_features_others = perceived_cars * self.features_per_car  # nr of cars * (nr of features/other car)
+        total_features = perceived_features_others + self.nr_self_perc_features
+
+        return Box(low=0, high=1, shape=(total_features,), dtype=np.float32)
 
     def get_key(self, tpl):
         return tpl[0]
@@ -96,12 +104,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     def get_state(self):
         """See class definition."""
         obs = {}
-        features_per_car = 3
-        lanes_perc_around = 1
-
-        #for id_label in self.k.vehicle.get_ids():
-        #    print('ID: ' + id_label + ' x: ' + str(self.k.vehicle.get_x_by_id(id_label)) + ' edge: ' +
-        #          self.k.vehicle.get_edge(veh_id=id_label))
 
         for veh_id in self.k.vehicle.get_rl_ids():
             if 'rl' in veh_id:
@@ -130,7 +132,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                                             leading_cars_dist,
                                             leading_cars_speed))
 
-                for l in range(lane-lanes_perc_around, lane+lanes_perc_around+1):  # Interval +/- 1 around rl car's lane
+                for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
                     if 0 <= l < self.k.network.num_lanes(edge):
                         # Valid lane value (=lane value inside set of existing lanes)
                         if headway_cars_map[l][0] == l:
@@ -141,7 +143,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                             others_representation.extend([0., 1000, float(self.k.network.max_speed())])
                     else:
                         # Lane to left/right does not exist. Pad values with -1.'s
-                        others_representation.extend([-1.] * features_per_car)
+                        others_representation.extend([-1.] * self.features_per_car)
 
                 ### Tailway ###
 
@@ -159,7 +161,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                                             following_cars_speed))
 
 
-                for l in range(lane-lanes_perc_around, lane+lanes_perc_around+1):  # Interval +/- 1 around rl car's lane
+                for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
                     if 0 <= l < self.k.network.num_lanes(edge):
                         # Valid lane value (=lane value inside set of existing lanes)
                         if tailway_cars_map[l][0] == l:
@@ -170,7 +172,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                             others_representation.extend([0., -1000, 0])
                     else:
                         # Lane to left/right does not exist. Pad values with -1.'s
-                        others_representation.extend([-1.] * features_per_car)
+                        others_representation.extend([-1.] * self.features_per_car)
 
                 # Merge two lists and transform to array
                 self_representation.extend(others_representation)
@@ -178,85 +180,11 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
                 obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
 
-        ##############################################################
-        ### fixme: remove again
-        """See class definition."""
-        obs = {}
-        headway_scale = 1000
-
-        for rl_id in self.k.vehicle.get_rl_ids():
-            # Get own normalized x location, speed, lane and edge
-            edge_num = self.k.vehicle.get_edge(rl_id)
-            if edge_num is None or edge_num == '' or edge_num[0] == ':':
-                edge_num = -1
-            else:
-                edge_num = int(edge_num) / 6
-
-            self_observation = [
-                self.k.vehicle.get_x_by_id(rl_id) / 1000,
-                (self.k.vehicle.get_speed(rl_id) / self.max_speed),
-                (self.k.vehicle.get_lane(rl_id) / MAX_LANES),
-                edge_num
-            ]
-
-            # Get relative normalized ...
-            num_lanes = MAX_LANES * self.scaling
-            headway = np.asarray([1000] * num_lanes) / headway_scale
-            tailway = np.asarray([1000] * num_lanes) / headway_scale
-            vel_in_front = np.asarray([0] * num_lanes) / self.max_speed
-            vel_behind = np.asarray([0] * num_lanes) / self.max_speed
-
-            lane_leaders = self.k.vehicle.get_lane_leaders(rl_id)
-            lane_followers = self.k.vehicle.get_lane_followers(rl_id)
-            lane_headways = self.k.vehicle.get_lane_headways(rl_id)
-            lane_tailways = self.k.vehicle.get_lane_tailways(rl_id)
-            headway[0:len(lane_headways)] = (
-                    np.asarray(lane_headways) / headway_scale)
-            tailway[0:len(lane_tailways)] = (
-                    np.asarray(lane_tailways) / headway_scale)
-
-            for i, lane_leader in enumerate(lane_leaders):
-                if lane_leader != '':
-                    vel_in_front[i] = (
-                            self.k.vehicle.get_speed(lane_leader) / self.max_speed)
-            for i, lane_follower in enumerate(lane_followers):
-                if lane_followers != '':
-                    vel_behind[i] = (self.k.vehicle.get_speed(lane_follower) /
-                                     self.max_speed)
-
-            relative_observation = np.concatenate((headway, tailway, vel_in_front, vel_behind))
-
-            obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
-
-        return obs
-
-        ##############################################################
-
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
         #"""See class definition."""
         return_rewards = {}
-        # in the warmup steps, rl_actions is None
-        #if rl_actions:
-        #    # for rl_id, actions in rl_actions.items():
-        #    for rl_id in self.k.vehicle.get_rl_ids():
-        #
-        #        reward = 0
-        #        # If there is a collision all agents get no reward
-        #        if not kwargs['fail']:
-        #            # Reward desired velocity in own edge
-        #            edge_num = self.k.vehicle.get_edge(rl_id)
-        #            reward += rewards.desired_velocity(self, fail=kwargs['fail'], edge_list=[edge_num])
-        #
-        #            # Reward own speed
-        #            reward += self.k.vehicle.get_speed(rl_id) * 0.1
-        #
-        #            # Punish own lane changing
-        #            if rl_id in rl_actions:
-        #                reward -= abs(rl_actions[rl_id][1])
-        #
-        #        return_rewards[rl_id] = reward
 
         """Outflow rate over last ten seconds normalized to max of 1."""
 
@@ -268,7 +196,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         # TODO: maybe augment reward computation later to introduce car-specific terms.
         #  Main focus shall remain RL outflow rate; Policies will be learned to reach that goal eventually
         for rl_id in self.k.vehicle.get_rl_ids():
-            return_rewards[rl_id] = reward
+            if 'rl' in rl_id:
+                return_rewards[rl_id] = reward
 
         return return_rewards
 
