@@ -194,8 +194,7 @@ def setup_exps(flow_params):
     config['horizon'] = HORIZON
 
     # save the flow params for replay
-    flow_json = json.dumps(
-        flow_params, cls=FlowParamsEncoder, sort_keys=True, indent=4)
+    flow_json = json.dumps(flow_params, cls=FlowParamsEncoder, sort_keys=True, indent=4)
     config['env_config']['flow_params'] = flow_json
     config['env_config']['run'] = alg_run
 
@@ -241,6 +240,6 @@ if __name__ == '__main__':
                 'training_iteration': 500
             },
             'config': config,
-            'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
+            # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
         },
     })
