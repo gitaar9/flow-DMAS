@@ -1,11 +1,8 @@
-from copy import deepcopy
-
 import numpy as np
-from gym.spaces import Box
-
 from flow.core import rewards
 from flow.envs import BottleneckEnv
 from flow.envs.multiagent import MultiEnv
+from gym.spaces import Box
 
 MAX_LANES = 4  # base number of largest number of lanes in the network
 EDGE_LIST = ["1", "2", "3", "4", "5"]  # Edge 1 is before the toll booth
@@ -59,7 +56,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
       """
 
     def __init__(self, env_params, sim_params, network, simulator='traci'):
-        """Initialize BottleneckAccelEnv."""
+        """Initialize BottleneckMultiAgentEnv."""
         for p in ADDITIONAL_RL_ENV_PARAMS.keys():
             if p not in env_params.additional_params:
                 raise KeyError(
@@ -126,7 +123,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
-        """See class definition."""
         return_rewards = {}
         # in the warmup steps, rl_actions is None
         if rl_actions:
@@ -152,7 +148,9 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
     @property
     def action_space(self):
-        """See class definition."""
+        """
+        :return: A box defining the size and bounds of the output layer of the network used for rl learning
+        """
         max_decel = self.env_params.additional_params["max_decel"]
         max_accel = self.env_params.additional_params["max_accel"]
 
@@ -163,27 +161,38 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
     def _apply_rl_actions(self, rl_actions):
         """
-        See parent class.
+        This function applies the actions the every reinforcement agent in the simulation
+
+        :param rl_actions: The output of the PPO network based on the last steps observation per agent
         """
-
-        """See class definition."""
-        # in the warmup steps, rl_actions is None
-        if rl_actions:
+        if rl_actions:  # in the warmup steps, rl_actions is None
             for rl_id, actions in rl_actions.items():
-                acceleration = actions[0]
-                direction = actions[1]
-
-                self.k.vehicle.apply_acceleration(rl_id, acceleration)
+                self.k.vehicle.apply_acceleration(rl_id, actions[0])
 
                 if self.time_counter <= self.env_params.additional_params['lane_change_duration'] \
                         + self.k.vehicle.get_last_lc(rl_id):
-                    # direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
-                    # direction =  max(-1, min(round(direction), 1))                # Clamp between -1 and 1
-                    self.k.vehicle.apply_lane_change(str(rl_id), round(direction))
+                    self.k.vehicle.apply_lane_change(str(rl_id), round(actions[1]))
 
 
 class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
     def compute_reward(self, rl_actions, **kwargs):
-        """Average outflow over last 10 steps, divided 2000 * scaling."""
-        reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
-        return {rl_id: reward for rl_id in self.k.vehicle.get_rl_ids()} if rl_actions else {}
+        """
+        :param rl_actions: The output of the PPO network based on the last steps observation per agent
+        :param kwargs: Can contain fail, to indicate that a crash happened
+        :return: The individual reward for every agent
+        """
+        # if a crash occurred everybody gets 0
+        if kwargs['fail']:
+            return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
+
+        # Average outflow over last 10 steps, divided 2000 * scaling.
+        outflow_reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+
+        rl_agent_rewards = {}
+        if rl_actions:
+            for rl_id in self.k.vehicle.get_rl_ids():
+                # Reward desired velocity in own edge + the total outflow
+                edge_num = self.k.vehicle.get_edge(rl_id)
+                rl_agent_rewards[rl_id] = rewards.desired_velocity(self, edge_list=[edge_num]) + outflow_reward
+
+        return rl_agent_rewards
