@@ -32,7 +32,7 @@ Important to note, the "multiagent_bottleneck.py" is the file that should be ran
 
 To visualize the simulation, follow these steps:
 <ul>
-  <li>Navigate to the base directory of git repo<\li>
+  <li>Navigate to the base directory of git repo</li>
   <li>Activate conde env: conda activate flow</li>
   <li>Run sumo with the model stored at iteration 220: python3 flow/visualize/visualizer_rllib.py trained_model_09-29 220</li>
   <li>In sumo click the green play button 3 times (we think this has to do with the fact we use 4 cores)</li>
