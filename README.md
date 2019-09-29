@@ -2,10 +2,10 @@
 
 DMAS group 1:
 <ul>
-  <li>Daniel Bick</li>
-  <li>Thijs Eker</li>
-  <li>Ewout Bergsma</li>
-  <li>Thomas Bakker</li>  
+  <li>Daniel Bick (s3145697)</li>
+  <li>Thijs Eker (s2576597)</li>
+  <li>Ewout Bergsma (s3441423)</li>
+  <li>Thomas Bakker (s2468360)</li>  
 </ul>
 
 [Original github repository](https://github.com/flow-project/flow)
