@@ -1,6 +1,6 @@
 # Details
 
-DMAS group 1:
+DMAS group A1:
 <ul>
   <li>Daniel Bick (s3145697)</li>
   <li>Thijs Eker (s2576597)</li>
@@ -23,15 +23,16 @@ By using and adjusting the above mentioned orignial github repository we constru
 
 The following two files are created by us:
 <ul>
-  <li>/flow-DMAS/examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
-  <li>/flow-DMAS/flow/envs/multiagent/bottleneck.py</li>
+  <li>examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
+  <li>flow/envs/multiagent/bottleneck.py</li>
 </ul>
 Important to note, the "multiagent_bottleneck.py" is the file that should be ran, if one would want to train the model. The "bottleneck.py" holds the actual functionality, as the other file is mainly used for parameter setting. Additionally, our report can also be found on this page: "Report_alphaversion.pdf"
 
 # Visualization of the trained model
 
-Run from base dir of git repo:
+To visualize the simulation, follow these steps:
 <ul>
+  <li>Navigate to the base directory of git repo<\li>
   <li>Activate conde env: conda activate flow</li>
   <li>Run sumo with the model stored at iteration 220: python3 flow/visualize/visualizer_rllib.py trained_model_09-29 220</li>
   <li>In sumo click the green play button 3 times (we think this has to do with the fact we use 4 cores)</li>
