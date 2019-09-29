@@ -28,5 +28,7 @@ The following two files are created by us:
 </ul>
 Important to note, the "multiagent_bottleneck.py" is the file that should be ran, if one would want to train the model. The "bottleneck.py" holds the actual functionality, as the other file is mainly used for parameter setting.
 
+Our report can also be found on this page: "Report_alphaversion.pdf"
+
 # Visualization of the trained model
 
