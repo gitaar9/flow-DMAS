@@ -1,45 +1,32 @@
-<img src="docs/img/square_logo.png" align="right" width="25%"/>
+# Details
 
-[![Build Status](https://travis-ci.com/flow-project/flow.svg?branch=master)](https://travis-ci.com/flow-project/flow)
-[![Docs](https://readthedocs.org/projects/flow/badge)](http://flow.readthedocs.org/en/latest/)
-[![Coverage Status](https://coveralls.io/repos/github/flow-project/flow/badge.svg?branch=master)](https://coveralls.io/github/flow-project/flow?branch=master)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/flow-project/flow/binder)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/flow-project/flow/blob/master/LICENSE.md)
+DMAS group 1:
+<ul>
+  <li>Daniel Bick (s3145697)</li>
+  <li>Thijs Eker (s2576597)</li>
+  <li>Ewout Bergsma (s3441423)</li>
+  <li>Thomas Bakker (s2468360)</li>  
+</ul>
 
-# Flow
+[Original github repository](https://github.com/flow-project/flow)
 
-[Flow](https://flow-project.github.io/) is a computational framework for deep RL and control experiments for traffic microsimulation.
+[Reference paper](https://arxiv.org/abs/1710.05465)
 
-See [our website](https://flow-project.github.io/) for more information on the application of Flow to several mixed-autonomy traffic scenarios. Other [results and videos](https://sites.google.com/view/ieee-tro-flow/home) are available as well.
+# Introduction
 
-# More information
+By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. To use our hello world follow these steps:
+<ul>
+  <li>git clone https://github.com/gitaar9/flow-DMAS.git</li>
+  <li>git checkout thijs_improving_the_new_reward_function</li>
+  <li>follow the instructions in the "RUNNING_INSTRUCTIONS.sh" file (may want to open it in a text editor)</li>
+</ul>
 
-- [Documentation](https://flow.readthedocs.org/en/latest/)
-- [Installation instructions](http://flow.readthedocs.io/en/latest/flow_setup.html)
-- [Tutorials](https://github.com/flow-project/flow/tree/master/tutorials)
-- [Binder Build (beta)](https://mybinder.org/v2/gh/flow-project/flow/binder)
+The following two files are created by us:
+<ul>
+  <li>/flow-DMAS/examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
+  <li>/flow-DMAS/flow/envs/multiagent/bottleneck.py</li>
+</ul>
+Important to note, the "multiagent_bottleneck.py" is the file that should be ran, if one would want to train the model. The "bottleneck.py" holds the actual functionality, as the other file is mainly used for parameter setting. Additionally, our report can also be found on this page: "Report_alphaversion.pdf"
 
-# Technical questions
+# Visualization of the trained model
 
-Please direct your technical questions to [Stack Overflow](https://stackoverflow.com) using the [flow-project](https://stackoverflow.com/questions/tagged/flow-project) tag.
-
-# Getting involved
-
-We welcome your contributions.
-
-- Please report bugs and improvements by submitting [GitHub issue](https://github.com/flow-project/flow/issues).
-- Submit your contributions using [pull requests](https://github.com/flow-project/flow/pulls). Please use [this template](https://github.com/flow-project/flow/blob/master/.github/PULL_REQUEST_TEMPLATE.md) for your pull requests.
-
-# Citing Flow
-
-If you use Flow for academic research, you are highly encouraged to cite our paper:
-
-C. Wu, A. Kreidieh, K. Parvate, E. Vinitsky, A. Bayen, "Flow: Architecture and Benchmarking for Reinforcement Learning in Traffic Control," CoRR, vol. abs/1710.05465, 2017. [Online]. Available: https://arxiv.org/abs/1710.05465
-
-If you use the benchmarks, you are highly encouraged to cite our paper:
-
-Vinitsky, E., Kreidieh, A., Le Flem, L., Kheterpal, N., Jang, K., Wu, F., ... & Bayen, A. M. (2018, October). Benchmarks for reinforcement learning in mixed-autonomy traffic. In Conference on Robot Learning (pp. 399-409).
-
-# Contributors
-
-Flow is supported by the [Mobile Sensing Lab](http://bayen.eecs.berkeley.edu/) at UC Berkeley and Amazon AWS Machine Learning research grants. The contributors are listed in [Flow Team Page](https://flow-project.github.io/team.html).
