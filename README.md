@@ -39,4 +39,4 @@ Run from base dir of git repo:
   <li>With the step button next to the play button, you can step through the simulation to get a better view of what the cars are doing.</li>
 </ul>
 
-The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library). Forcing the simulation to go beyond the
+The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library). Forcing the simulation to go beyond the initial ~200 steps will make yellow cars enter the simulation, currently the reason is unknown.
