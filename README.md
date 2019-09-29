@@ -30,3 +30,13 @@ Important to note, the "multiagent_bottleneck.py" is the file that should be ran
 
 # Visualization of the trained model
 
+Run from base dir of git repo:
+<ul>
+  <li>Activate conde env: conda activate flow</li>
+  <li>Run sumo with the model stored at iteration 220: python3 flow/visualize/visualizer_rllib.py trained_model_09-29 220</li>
+  <li>In sumo click the green play button 3 times (we think this has to do with the fact we use 4 cores)</li>
+  <li>When the play button is pressed the 4th time, the simulation will run (for an average of 200 steps)</li>
+  <li>With the step button next to the play button, you can step through the simulation to get a better view of what the cars are doing.</li>
+</ul>
+
+The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library). Forcing the simulation to go beyond the
