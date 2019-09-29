@@ -241,5 +241,6 @@ if __name__ == '__main__':
             },
             'config': config,
             # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
+            'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-29_13-19-227pc6_esq/checkpoint_120/checkpoint-120'
         },
     })
