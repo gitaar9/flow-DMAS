@@ -14,7 +14,7 @@ DMAS group A1:
 
 # Introduction
 
-By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. To use our hello world follow these steps:
+By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. To install the project follow these steps:
 <ul>
   <li>git clone https://github.com/gitaar9/flow-DMAS.git</li>
   <li>git checkout thijs_improving_the_new_reward_function</li>
