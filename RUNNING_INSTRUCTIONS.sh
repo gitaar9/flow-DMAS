@@ -17,6 +17,12 @@ source activate flow 								#conda activate flow
 pip install -e .
 #scripts/setup_sumo_ubuntu1604.sh 						#For ubuntu version 16
 scripts/setup_sumo_ubuntu1804.sh  						#For ubuntu version 18
+
+#Kill current terminal and open a new one!
+
+source activate flow
+
+#The following will start training the model, for more information see the README.md found on github https://github.com/gitaar9/flow-DMAS/tree/thijs_improving_the_new_reward_function
 python3 examples/rllib/multiagent_exps/multiagent_bottleneck.py
 
 #The following command can be used to remove the conda environment, if so desired:
