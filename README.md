@@ -26,7 +26,7 @@ The following two files are created by us:
   <li>/flow-DMAS/examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
   <li>/flow-DMAS/flow/envs/multiagent/bottleneck.py</li>
 </ul>
-Important to note, the "multiagent_bottleneck.py" is the file that should be ran, if one would want to train the model. Currently it is setup to continue training on the latest checkpoint.
+Important to note, the "multiagent_bottleneck.py" is the file that should be ran, if one would want to train the model. The "bottleneck.py" holds the actual functionality, as the other file is mainly used for parameter setting.
 
 # Visualization of the trained model
 
