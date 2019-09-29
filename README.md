@@ -34,7 +34,7 @@ To visualize the simulation, follow these steps:
 <ul>
   <li>Navigate to the base directory of git repo</li>
   <li>Activate conde env: conda activate flow</li>
-  <li>Run sumo with the model stored at iteration 220: python3 flow/visualize/visualizer_rllib.py trained_model_09-29 220</li>
+  <li>Run sumo with the model stored at iteration 300: python3 flow/visualize/visualizer_rllib.py trained_model_09-29 300</li>
   <li>In sumo click the green play button 3 times (we think this has to do with the fact we use 4 cores)</li>
   <li>When the play button is pressed the 4th time, the simulation will run (for an average of 200 steps)</li>
   <li>With the step button next to the play button, you can step through the simulation to get a better view of what the cars are doing.</li>
