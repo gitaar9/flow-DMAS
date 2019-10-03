@@ -1,5 +1,7 @@
 """Multi-agent bottleneck."""
 
+import sys
+
 try:
     from ray.rllib.agents.agent import get_agent_class
 except ImportError:
@@ -249,11 +251,12 @@ if __name__ == '__main__':
         flow_params['exp_tag']: {
             'run': alg_run,
             'env': env_name,
-            'checkpoint_freq': 20,
+            'checkpoint_freq': 10,
             'checkpoint_at_end': True,
             'stop': {
                 'training_iteration': 100
             },
             'config': config,
+            **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {}),
         },
     })
