@@ -234,7 +234,7 @@ if __name__ == '__main__':
         flow_params['exp_tag']: {
             'run': alg_run,
             'env': env_name,
-            'checkpoint_freq': 20,
+            'checkpoint_freq': 1,
             'checkpoint_at_end': True,
             'stop': {
                 'training_iteration': 500
