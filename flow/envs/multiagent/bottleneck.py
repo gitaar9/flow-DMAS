@@ -185,11 +185,11 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         """(RL-)Outflow rate over last ten seconds normalized to max of 1."""
         return_rewards = {}
 
-        reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        #reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
         # FIXME: Enable following line to introduce reward based on RL(-only)-outflow rate; Disable the above line:
-        # reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
-        reward *= 100  # Make positive behavior even more rewarding
+        reward *= 10  # Make positive behavior even more rewarding
         # print('Reward: ' + str(reward))
 
         # This (rl-)outflow-rate-based reward applies to all rl vehicles individually. Assign to each:
