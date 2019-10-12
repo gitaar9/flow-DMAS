@@ -50,7 +50,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
           in front and behind the AV for all lanes.
 
       Actions
-          The action space 1 value for acceleration and 1 for lane changing
+          The action space 1 value for acceleration and 3 for lane changing (converted to pseudo-probs via softmax)
 
       Rewards
           The reward is the average speed of the edge the agent is currently in combined with the speed of
@@ -82,7 +82,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
     @property
     def observation_space(self):
-        """See class definition. 2 = headway + tailway """
+        """See class definition. 2 = headway + tailway // left + right"""
 
         perceived_lanes = 2 * self.perc_lanes_around + 1                    # 2*sides + own lane
         perceived_cars = 2 * perceived_lanes                                # front + back
@@ -110,7 +110,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                 edge = self.k.vehicle.get_edge(veh_id)
                 lane = self.k.vehicle.get_lane(veh_id)
                 veh_x_pos = self.k.vehicle.get_x_by_id(veh_id)
-                                                                            # Infos the car stores about itsels:
+                                                                            # Infos the car stores about itself:
                 self_representation = [veh_x_pos,                           # Car's current x-position along the road
                                        self.k.vehicle.get_speed(veh_id),    # Car's current speed
                                        self.k.network.speed_limit(edge)]    # How fast car may drive (reference value)
@@ -184,8 +184,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     def compute_reward(self, rl_actions, **kwargs):
         """(RL-)Outflow rate over last ten seconds normalized to max of 1."""
         return_rewards = {}
-        scaling_factor_speed = 3    # How much to scale reward for sticking close to speed limit
-        scaling_factor_ofr = 5      # How much to scale reward for high ofr = out flow rate
+        scaling_factor_speed = 3    # How much to scale reward for sticking close to speed limit    (personal)
+        scaling_factor_ofr = 5      # How much to scale reward for high ofr = out flow rate         (shared)
 
         # Option 1: Reward based on overall outflow rate:
         # reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
@@ -193,27 +193,37 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         # Option 2: Reward based on RL(-only)-outflow rate:
         reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
-        reward *= scaling_factor_ofr  # Make positive behavior even more rewarding by scaling reward (speed up training)
-
+        # Get how fast each vehicle was in prev time step & how fast it was allowed to drive
         all_veh_speeds = self.k.vehicle.get_speed(self.k.vehicle.get_rl_ids())  # Get each car's current speed
         all_veh_edges = self.k.vehicle.get_edge(self.k.vehicle.get_rl_ids())    # Get info in which edge each car is
         all_veh_max_speeds = [self.k.network.speed_limit(edge) for edge in all_veh_edges]  # Get each car's edge's speed limit
 
-        # This (rl-)outflow-rate-based reward applies to all rl vehicles individually.
-        # Assign to each, filter for rl-only & add possibly car-specific rewards:
-        # Main focus shall remain on RL outflow rate; Policies will be learned to reach that goal eventually.
+        # Compute weighted reward (shared vs individual portion) & assign to each individual car
+        # Main focus (weight) shall remain on RL outflow rate; Policies will be learned to reach that goal eventually.
         for i, rl_id in enumerate(self.k.vehicle.get_rl_ids()):
-            # Make sure reward for flow-simulated vehicles does not get returned: filter for true rl cars
+            pers_reward = 0
+            # Make sure reward for flow-simulated vehicles does not get returned: filter for true rl cars:
             if 'rl' in rl_id:
-                # Take into account how closely car sticks to speed limit. The closer, the better/more rewarding:
-                # print('Car: ' + str(rl_id) + ' Max speed: ' + str(all_veh_max_speeds[i]) + ' Actual speed: ' \
+                # Take into account how closely car sticked to speed limit. The closer, the better/more rewarding:
+                # print('Car: ' + str(rl_id) + ' Max speed: ' + str(all_veh_max_speeds[i]) + ' Actual speed: '
                 # + str(all_veh_speeds[i]))
                 if all_veh_speeds[i] < all_veh_max_speeds[i]:
-                    reward += (all_veh_speeds[i]/all_veh_max_speeds[i]) * scaling_factor_speed
-                    # print('Incremented reward by: ' + str((all_veh_speeds[i]/all_veh_max_speeds[i])*10))
+                    # Car was slower than allowed: pers_reward = (actual_speed/allowed_speed)*scaling
+                    pers_reward += (all_veh_speeds[i]/all_veh_max_speeds[i])
+                    # print('Incremented reward by: ' + str((all_veh_speeds[i]/all_veh_max_speeds[i])))
                 else:
-                    reward += (1/(all_veh_speeds[i] / all_veh_max_speeds[i])) * scaling_factor_speed
-                    # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i])) * 10))
+                    # Car was speeding, i.e. faster than allowed: pers_reward = (1/(actual_speed/allowed_speed))*scaling
+                    pers_reward += (1/(all_veh_speeds[i] / all_veh_max_speeds[i]))
+                    # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i]))))
+
+                # Weight and sum up shared and personal rewards
+                reward = reward * scaling_factor_ofr + pers_reward * scaling_factor_speed
+
+                # Normalize personal reward; Weighting: compliance_with_speed_limit=3; rl_outflow_rate=5; i.e. 3:5
+                reward /= (scaling_factor_ofr + scaling_factor_speed)
+
+                # Scale (weighted) reward to speed up training
+                # reward *= 3
 
                 # Assign reward to vehicle:
                 return_rewards[rl_id] = reward
@@ -224,33 +234,43 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     @property
     def action_space(self):
         """See class definition."""
-        max_decel = self.env_params.additional_params["max_decel"]
-        max_accel = self.env_params.additional_params["max_accel"]
-
-        lb = [-abs(max_decel), -1]  # * self.num_rl
-        ub = [max_accel, 1]  # * self.num_rl
-
-        return Box(np.array(lb), np.array(ub), dtype=np.float32)
+        return Box(
+            low=-np.abs(self.env_params.additional_params['max_decel']),
+            high=self.env_params.additional_params['max_accel'],
+            shape=(4,),  # 1 * acc-/deceleration + 3 possible lane changes
+            dtype=np.float32)
 
     def _apply_rl_actions(self, rl_actions):
-        """
-        See parent class.
-        """
+        """Adapted from flow/envs/multiagent/highway.py.
+           The first element in the actions vector for a given car contains the acc-/decelerate command to be applied.
+           The next actions per car, i.e. [1:4], contain measures of goodness for changing lane left/none/right.
+           These measures of goodness get converted to pseudo-probabilities via application of the soft-max-function
+           to them.
+           Eventually, both acc-/deceleration and lane changing get applied. """
 
-        """See class definition."""
-        # in the warmup steps, rl_actions is None
+        # In the warmup steps, rl_actions is None (to get randomized training onsets)
         if rl_actions:
             for rl_id, actions in rl_actions.items():
-                acceleration = actions[0]
-                direction = actions[1]
+                # Get acc-/deceleration
+                accel = actions[0]
 
-                self.k.vehicle.apply_acceleration(rl_id, acceleration)
+                # Apply softmax function to lane changing estimates
+                # Compute softmax-probabilities:
+                lane_change_softmax = np.exp(actions[1:4])
+                lane_change_softmax /= np.sum(lane_change_softmax)
+                # Randomly sample lane change action following soft-max-probability-distribution:
+                lane_change_action = np.random.choice([-1, 0, 1], p=lane_change_softmax)
 
-                if self.time_counter <= self.env_params.additional_params[
-                    'lane_change_duration'] + self.k.vehicle.get_last_lc(rl_id):
-                    # direction = round(np.random.normal(loc=direction, scale=0.2))  # Exploration rate of 0.2 is random
-                    direction = max(-1, min(round(direction), 1))                 # Clamp between -1 and 1
-                    self.k.vehicle.apply_lane_change(str(rl_id), direction)
+                # Apply actions
+                # Change: Lane changes can now be applied instantaneously each time-step
+                self.k.vehicle.apply_acceleration(rl_id, accel)
+                self.k.vehicle.apply_lane_change(rl_id, lane_change_action)
+
+
+
+
+
+
 
     # def additional_command(self):
     #     """See parent class.

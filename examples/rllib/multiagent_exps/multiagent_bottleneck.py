@@ -104,13 +104,13 @@ inflow.add(
     edge="1",
     vehs_per_hour=flow_rate * (1 - AV_FRAC),
     departLane="random",
-    departSpeed=10)
+    departSpeed="random")
 inflow.add(
     veh_type="rl",
     edge="1",
     vehs_per_hour=flow_rate * AV_FRAC,
     departLane="random",
-    departSpeed=10)
+    departSpeed="random")
 
 traffic_lights = TrafficLightParams()
 if not DISABLE_TB:
@@ -146,7 +146,7 @@ flow_params = dict(
 
     # environment related parameters (see flow.core.params.EnvParams)
     env=EnvParams(
-        warmup_steps=0,  # Originally was set to 40, decreased to 0-
+        warmup_steps=10,  # Get randomized training onsets
         sims_per_step=1,
         horizon=HORIZON,
         additional_params=additional_env_params,
@@ -202,8 +202,8 @@ def setup_exps(flow_params):
     config['num_workers'] = N_CPUS
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['simple_optimizer'] = True
-    config['gamma'] = 0.999  # discount rate
-    config['model'].update({'fcnet_hiddens': [32, 32]})
+    config['gamma'] = 0.99  # discount rate
+    config['model'].update({'fcnet_hiddens': [25, 25]})  # Curr. obs. space size: X=21, layer's X*X dim should be higher
     config['lr'] = tune.grid_search([1e-5])
     config['horizon'] = HORIZON
     config['clip_actions'] = False
