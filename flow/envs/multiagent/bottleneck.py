@@ -95,9 +95,9 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         return tpl[0]
 
     def get_label(self, veh_id):
-        if 'rl' in veh_id:
+        if 'rl' in veh_id or 'flow' in veh_id:
             return 2.
-        elif 'human' in veh_id or 'flow' in veh_id:
+        elif 'human' in veh_id:
             return 1.
         return 0.
 
@@ -106,78 +106,78 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         obs = {}
 
         for veh_id in self.k.vehicle.get_rl_ids():
-            if 'rl' in veh_id:
-                edge = self.k.vehicle.get_edge(veh_id)
-                lane = self.k.vehicle.get_lane(veh_id)
-                veh_x_pos = self.k.vehicle.get_x_by_id(veh_id)
-                                                                            # Infos the car stores about itself:
-                self_representation = [veh_x_pos,                           # Car's current x-position along the road
-                                       self.k.vehicle.get_speed(veh_id),    # Car's current speed
-                                       self.k.network.speed_limit(edge)]    # How fast car may drive (reference value)
 
-                others_representation = []                                  # Representation of surrounding vehicles
+            edge = self.k.vehicle.get_edge(veh_id)
+            lane = self.k.vehicle.get_lane(veh_id)
+            veh_x_pos = self.k.vehicle.get_x_by_id(veh_id)
+                                                                        # Infos the car stores about itself:
+            self_representation = [veh_x_pos,                           # Car's current x-position along the road
+                                   self.k.vehicle.get_speed(veh_id),    # Car's current speed
+                                   self.k.network.speed_limit(edge)]    # How fast car may drive (reference value)
 
-                ### Headway ###
+            others_representation = []                                  # Representation of surrounding vehicles
 
-                # Returned ids sorted by lane index
-                leading_cars_ids = self.k.vehicle.get_lane_leaders(veh_id)
-                leading_cars_dist = [self.k.vehicle.get_x_by_id(lead_id) - veh_x_pos for lead_id in leading_cars_ids]
-                leading_cars_labels = [self.get_label(leading_id) for leading_id in leading_cars_ids]
-                leading_cars_speed = self.k.vehicle.get_speed(leading_cars_ids, error=float(self.k.network.max_speed()))
-                leading_cars_lanes = self.k.vehicle.get_lane(leading_cars_ids)
+            ### Headway ###
 
-                # Sorted increasingly by lane from 0 to nr of lanes
-                headway_cars_map = list(zip(leading_cars_lanes,
-                                            leading_cars_labels,
-                                            leading_cars_dist,
-                                            leading_cars_speed))
+            # Returned ids sorted by lane index
+            leading_cars_ids = self.k.vehicle.get_lane_leaders(veh_id)
+            leading_cars_dist = [self.k.vehicle.get_x_by_id(lead_id) - veh_x_pos for lead_id in leading_cars_ids]
+            leading_cars_labels = [self.get_label(leading_id) for leading_id in leading_cars_ids]
+            leading_cars_speed = self.k.vehicle.get_speed(leading_cars_ids, error=float(self.k.network.max_speed()))
+            leading_cars_lanes = self.k.vehicle.get_lane(leading_cars_ids)
 
-                for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
-                    if 0 <= l < self.k.network.num_lanes(edge):
-                        # Valid lane value (=lane value inside set of existing lanes)
-                        if headway_cars_map[l][0] == l:
-                            # There is a car on this lane in front since lane-value in map is not equal to error-code
-                            others_representation.extend(headway_cars_map[l][1:])  # Add [idX, distX, speedX]
-                        else:
-                            # There is no car in respective lane in front of rl car since lane-value == error-code
-                            others_representation.extend([0., 1000, float(self.k.network.max_speed())])
+            # Sorted increasingly by lane from 0 to nr of lanes
+            headway_cars_map = list(zip(leading_cars_lanes,
+                                        leading_cars_labels,
+                                        leading_cars_dist,
+                                        leading_cars_speed))
+
+            for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
+                if 0 <= l < self.k.network.num_lanes(edge):
+                    # Valid lane value (=lane value inside set of existing lanes)
+                    if headway_cars_map[l][0] == l:
+                        # There is a car on this lane in front since lane-value in map is not equal to error-code
+                        others_representation.extend(headway_cars_map[l][1:])  # Add [idX, distX, speedX]
                     else:
-                        # Lane to left/right does not exist. Pad values with -1.'s
-                        others_representation.extend([-1.] * self.features_per_car)
+                        # There is no car in respective lane in front of rl car since lane-value == error-code
+                        others_representation.extend([0., 1000, float(self.k.network.max_speed())])
+                else:
+                    # Lane to left/right does not exist. Pad values with -1.'s
+                    others_representation.extend([-1.] * self.features_per_car)
 
-                ### Tailway ###
+            ### Tailway ###
 
-                # Sorted by lane index if not mistaken...
-                following_cars_ids = self.k.vehicle.get_lane_followers(veh_id)
-                following_cars_dist = [self.k.vehicle.get_x_by_id(follow_id) - veh_x_pos if not follow_id == '' \
-                                           else -1000 for follow_id in following_cars_ids]
-                following_cars_labels = [self.get_label(following_id) for following_id in following_cars_ids]
-                following_cars_speed = self.k.vehicle.get_speed(following_cars_ids, error=0)
-                following_cars_lanes = self.k.vehicle.get_lane(following_cars_ids, error=-1001)
+            # Sorted by lane index if not mistaken...
+            following_cars_ids = self.k.vehicle.get_lane_followers(veh_id)
+            following_cars_dist = [self.k.vehicle.get_x_by_id(follow_id) - veh_x_pos if not follow_id == '' \
+                                       else -1000 for follow_id in following_cars_ids]
+            following_cars_labels = [self.get_label(following_id) for following_id in following_cars_ids]
+            following_cars_speed = self.k.vehicle.get_speed(following_cars_ids, error=0)
+            following_cars_lanes = self.k.vehicle.get_lane(following_cars_ids, error=-1001)
 
-                tailway_cars_map = list(zip(following_cars_lanes,
-                                            following_cars_labels,
-                                            following_cars_dist,
-                                            following_cars_speed))
+            tailway_cars_map = list(zip(following_cars_lanes,
+                                        following_cars_labels,
+                                        following_cars_dist,
+                                        following_cars_speed))
 
-                for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
-                    if 0 <= l < self.k.network.num_lanes(edge):
-                        # Valid lane value (=lane value inside set of existing lanes)
-                        if tailway_cars_map[l][0] == l:
-                            # There is a car on this lane behind since lane-value in map is not equal to error-code
-                            others_representation.extend(tailway_cars_map[l][1:])  # Add [idX, distX, speedX]
-                        else:
-                            # There is no car in respective lane behind rl car since lane-value == error-code
-                            others_representation.extend([0., -1000, 0])
+            for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
+                if 0 <= l < self.k.network.num_lanes(edge):
+                    # Valid lane value (=lane value inside set of existing lanes)
+                    if tailway_cars_map[l][0] == l:
+                        # There is a car on this lane behind since lane-value in map is not equal to error-code
+                        others_representation.extend(tailway_cars_map[l][1:])  # Add [idX, distX, speedX]
                     else:
-                        # Lane to left/right does not exist. Pad values with -1.'s
-                        others_representation.extend([-1.] * self.features_per_car)
+                        # There is no car in respective lane behind rl car since lane-value == error-code
+                        others_representation.extend([0., -1000, 0])
+                else:
+                    # Lane to left/right does not exist. Pad values with -1.'s
+                    others_representation.extend([-1.] * self.features_per_car)
 
-                # Merge two lists (self-representation & representation of surrounding lanes/cars) and transform to array
-                self_representation.extend(others_representation)
-                observation_arr = np.asarray(self_representation, dtype=float)
+            # Merge two lists (self-representation & representation of surrounding lanes/cars) and transform to array
+            self_representation.extend(others_representation)
+            observation_arr = np.asarray(self_representation, dtype=float)
 
-                obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
+            obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
 
         return obs
 
@@ -201,33 +201,33 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         # Compute weighted reward (shared vs individual portion) & assign to each individual car
         # Main focus (weight) shall remain on RL outflow rate; Policies will be learned to reach that goal eventually.
         for i, rl_id in enumerate(self.k.vehicle.get_rl_ids()):
+
             pers_reward = 0
-            # Make sure reward for flow-simulated vehicles does not get returned: filter for true rl cars:
-            if 'rl' in rl_id:
-                # Take into account how closely car sticked to speed limit. The closer, the better/more rewarding:
-                # print('Car: ' + str(rl_id) + ' Max speed: ' + str(all_veh_max_speeds[i]) + ' Actual speed: '
-                # + str(all_veh_speeds[i]))
-                if all_veh_speeds[i] < all_veh_max_speeds[i]:
-                    # Car was slower than allowed: pers_reward = (actual_speed/allowed_speed)*scaling
-                    pers_reward += (all_veh_speeds[i]/all_veh_max_speeds[i])
-                    # print('Incremented reward by: ' + str((all_veh_speeds[i]/all_veh_max_speeds[i])))
-                else:
-                    # Car was speeding, i.e. faster than allowed: pers_reward = (1/(actual_speed/allowed_speed))*scaling
-                    pers_reward += (1/(all_veh_speeds[i] / all_veh_max_speeds[i]))
-                    # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i]))))
 
-                # Weight and sum up shared and personal rewards
-                reward = reward * scaling_factor_ofr + pers_reward * scaling_factor_speed
+            # Take into account how closely car sticked to speed limit. The closer, the better/more rewarding:
+            # print('Car: ' + str(rl_id) + ' Max speed: ' + str(all_veh_max_speeds[i]) + ' Actual speed: '
+            # + str(all_veh_speeds[i]))
+            if all_veh_speeds[i] < all_veh_max_speeds[i]:
+                # Car was slower than allowed: pers_reward = (actual_speed/allowed_speed)*scaling
+                pers_reward += (all_veh_speeds[i]/all_veh_max_speeds[i])
+                # print('Incremented reward by: ' + str((all_veh_speeds[i]/all_veh_max_speeds[i])))
+            else:
+                # Car was speeding, i.e. faster than allowed: pers_reward = (1/(actual_speed/allowed_speed))*scaling
+                pers_reward += (1/(all_veh_speeds[i] / all_veh_max_speeds[i]))
+                # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i]))))
 
-                # Normalize personal reward; Weighting: compliance_with_speed_limit=3; rl_outflow_rate=5; i.e. 3:5
-                reward /= (scaling_factor_ofr + scaling_factor_speed)
+            # Weight and sum up shared and personal rewards
+            reward = reward * scaling_factor_ofr + pers_reward * scaling_factor_speed
 
-                # Scale (weighted) reward to speed up training
-                # reward *= 3
+            # Normalize personal reward; Weighting: compliance_with_speed_limit=3; rl_outflow_rate=5; i.e. 3:5
+            reward /= (scaling_factor_ofr + scaling_factor_speed)
 
-                # Assign reward to vehicle:
-                return_rewards[rl_id] = reward
-                # print('Veh-ID: ' + rl_id + ' Reward: ' + str(reward))
+            # Scale (weighted) reward to speed up training
+            # reward *= 3
+
+            # Assign reward to vehicle:
+            return_rewards[rl_id] = reward
+            # print('Veh-ID: ' + rl_id + ' Reward: ' + str(reward))
 
         return return_rewards
 

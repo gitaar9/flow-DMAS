@@ -203,7 +203,7 @@ def setup_exps(flow_params):
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['simple_optimizer'] = True
     config['gamma'] = 0.99  # discount rate
-    config['model'].update({'fcnet_hiddens': [25, 25]})  # Curr. obs. space size: X=21, layer's X*X dim should be higher
+    config['model'].update({'fcnet_hiddens': [28, 28]})  # Curr. obs. space size: X=21, layer's X*X dim should be higher
     config['lr'] = tune.grid_search([1e-5])
     config['horizon'] = HORIZON
     config['clip_actions'] = False
