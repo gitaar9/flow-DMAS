@@ -184,21 +184,40 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
     def compute_reward(self, rl_actions, **kwargs):
         """(RL-)Outflow rate over last ten seconds normalized to max of 1."""
         return_rewards = {}
+        scaling_factor_speed = 3    # How much to scale reward for sticking close to speed limit
+        scaling_factor_ofr = 5      # How much to scale reward for high ofr = out flow rate
 
-        #reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
-        # FIXME: Enable following line to introduce reward based on RL(-only)-outflow rate; Disable the above line:
+        # Option 1: Reward based on overall outflow rate:
+        # reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+
+        # Option 2: Reward based on RL(-only)-outflow rate:
         reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
-        reward *= 10  # Make positive behavior even more rewarding
-        # print('Reward: ' + str(reward))
+        reward *= scaling_factor_ofr  # Make positive behavior even more rewarding by scaling reward (speed up training)
 
-        # This (rl-)outflow-rate-based reward applies to all rl vehicles individually. Assign to each:
-        # TODO: maybe augment reward computation later to introduce car-specific terms.
-        #  Main focus shall remain on RL outflow rate; Policies will be learned to reach that goal eventually
-        for rl_id in self.k.vehicle.get_rl_ids():
+        all_veh_speeds = self.k.vehicle.get_speed(self.k.vehicle.get_rl_ids())  # Get each car's current speed
+        all_veh_edges = self.k.vehicle.get_edge(self.k.vehicle.get_rl_ids())    # Get info in which edge each car is
+        all_veh_max_speeds = [self.k.network.speed_limit(edge) for edge in all_veh_edges]  # Get each car's edge's speed limit
+
+        # This (rl-)outflow-rate-based reward applies to all rl vehicles individually.
+        # Assign to each, filter for rl-only & add possibly car-specific rewards:
+        # Main focus shall remain on RL outflow rate; Policies will be learned to reach that goal eventually.
+        for i, rl_id in enumerate(self.k.vehicle.get_rl_ids()):
+            # Make sure reward for flow-simulated vehicles does not get returned: filter for true rl cars
             if 'rl' in rl_id:
-                # Make sure reward for flow-simulated vehicles does not get returned
+                # Take into account how closely car sticks to speed limit. The closer, the better/more rewarding:
+                # print('Car: ' + str(rl_id) + ' Max speed: ' + str(all_veh_max_speeds[i]) + ' Actual speed: ' \
+                # + str(all_veh_speeds[i]))
+                if all_veh_speeds[i] < all_veh_max_speeds[i]:
+                    reward += (all_veh_speeds[i]/all_veh_max_speeds[i]) * scaling_factor_speed
+                    # print('Incremented reward by: ' + str((all_veh_speeds[i]/all_veh_max_speeds[i])*10))
+                else:
+                    reward += (1/(all_veh_speeds[i] / all_veh_max_speeds[i])) * scaling_factor_speed
+                    # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i])) * 10))
+
+                # Assign reward to vehicle:
                 return_rewards[rl_id] = reward
+                # print('Veh-ID: ' + rl_id + ' Reward: ' + str(reward))
 
         return return_rewards
 
