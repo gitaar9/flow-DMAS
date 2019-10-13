@@ -61,9 +61,6 @@ def make_create_env(params, version=0, render=None):
 
     env_name = params["env_name"] + '-v{}'.format(version)
 
-    print("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
-    print(env_name)
-
     module = __import__("flow.networks", fromlist=[params["network"]])
     network_class = getattr(module, params["network"])
 
@@ -109,6 +106,10 @@ def make_create_env(params, version=0, render=None):
                 })
         except Exception:
             pass
+
+        print(
+            "HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+        print(env_name)
         return gym.envs.make(env_name)
 
     return create_env, env_name
