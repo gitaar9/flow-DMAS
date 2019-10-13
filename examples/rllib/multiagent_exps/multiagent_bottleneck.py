@@ -240,7 +240,7 @@ if __name__ == '__main__':
             'checkpoint_freq': 1,
             'checkpoint_at_end': True,
             'stop': {
-                'training_iteration': 500
+                'training_iteration': 1
             },
             'config': config,
             'local_dir': '/content/gdrive/My Drive/'
