@@ -32,9 +32,9 @@ from flow.controllers import RLController, ContinuousRouter, \
 # time horizon of a single rollout
 HORIZON = 1000
 # number of parallel workers
-N_CPUS = 20
+N_CPUS = 4
 # number of rollouts per training iteration
-N_ROLLOUTS = N_CPUS * 8
+N_ROLLOUTS = N_CPUS * 4
 
 SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
