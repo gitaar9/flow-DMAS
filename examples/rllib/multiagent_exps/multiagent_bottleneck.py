@@ -237,14 +237,14 @@ if __name__ == '__main__':
         flow_params['exp_tag']: {
             'run': alg_run,
             'env': env_name,
-            'checkpoint_freq': 1,
+            'checkpoint_freq': 10,
             'checkpoint_at_end': True,
             'stop': {
-                'training_iteration': 1
+                'training_iteration': 500
             },
             'config': config,
             'local_dir': '/content/gdrive/My Drive/'
             # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
-            # **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
+            **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
         },
     })
