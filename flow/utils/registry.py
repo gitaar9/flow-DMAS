@@ -59,7 +59,10 @@ def make_create_env(params, version=0, render=None):
     """
     exp_tag = params["exp_tag"]
 
-    env_name = params["env_name"]# + '-v{}'.format(version)
+    env_name = params["env_name"] + '-v{}'.format(version)
+
+    print("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+    print(env_name)
 
     module = __import__("flow.networks", fromlist=[params["network"]])
     network_class = getattr(module, params["network"])
