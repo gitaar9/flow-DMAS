@@ -181,66 +181,87 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
 class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
 
-    # @property
-    # def observation_space(self):
-    #     """See class definition."""
-    #     num_obs = 4 * MAX_LANES * self.scaling + 4
-    #     return Box(low=0, high=1, shape=(num_obs,), dtype=np.float32)
-    #
-    # def get_state(self):
-    #     """See class definition."""
-    #     obs = {}
-    #     headway_scale = 1000
-    #
-    #     for rl_id in self.k.vehicle.get_rl_ids():
-    #         # Get own normalized x location, speed, lane and edge
-    #         edge_num = self.k.vehicle.get_edge(rl_id)
-    #         if edge_num is None or edge_num == '' or edge_num[0] == ':':
-    #             edge_num = -1
-    #         else:
-    #             edge_num = int(edge_num) / 6
-    #
-    #         self_observation = [
-    #             self.k.vehicle.get_x_by_id(rl_id) / 1000,
-    #             (self.k.vehicle.get_speed(rl_id) / self.max_speed),
-    #             (self.k.vehicle.get_lane(rl_id) / MAX_LANES),
-    #             edge_num
-    #         ]
-    #
-    #         # Get relative normalized ...
-    #         num_lanes = MAX_LANES * self.scaling
-    #         headway = np.asarray([1000] * num_lanes) / headway_scale
-    #         tailway = np.asarray([1000] * num_lanes) / headway_scale
-    #         vel_in_front = np.asarray([0] * num_lanes) / self.max_speed
-    #         vel_behind = np.asarray([0] * num_lanes) / self.max_speed
-    #
-    #         lane_leaders = self.k.vehicle.get_lane_leaders(rl_id)
-    #         lane_followers = self.k.vehicle.get_lane_followers(rl_id)
-    #         lane_headways = self.k.vehicle.get_lane_headways(rl_id)
-    #         lane_tailways = self.k.vehicle.get_lane_tailways(rl_id)
-    #         headway[0:len(lane_headways)] = (
-    #                 np.asarray(lane_headways) / headway_scale)
-    #         tailway[0:len(lane_tailways)] = (
-    #                 np.asarray(lane_tailways) / headway_scale)
-    #
-    #         # print("\nLane {}\nLane leaders {}\nheadways {}\nlane hw  {}".format(lane_leaders,
-    #         #                                                                     self_observation[2]*MAX_LANES,
-    #         #                                                                     headway, lane_headways))
-    #
-    #         for i, lane_leader in enumerate(lane_leaders):
-    #             if lane_leader != '':
-    #                 vel_in_front[i] = (
-    #                         self.k.vehicle.get_speed(lane_leader) / self.max_speed)
-    #         for i, lane_follower in enumerate(lane_followers):
-    #             if lane_followers != '':
-    #                 vel_behind[i] = (self.k.vehicle.get_speed(lane_follower) /
-    #                                  self.max_speed)
-    #
-    #         relative_observation = np.concatenate((headway, tailway, vel_in_front, vel_behind))
-    #
-    #         obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
-    #
-    #     return obs
+    @property
+    def observation_space(self):
+        """See class definition."""
+        lb = [0] * 4 + [-1] * 18
+        ub = [1] * 4 + [1] * 18
+
+        return Box(np.array(lb), np.array(ub), dtype=np.float32)
+
+    def get_state(self):
+        """See class definition."""
+        obs = {}
+        headway_scale = 1000
+
+        rl_ids = self.k.vehicle.get_rl_ids()
+
+        for rl_id in rl_ids:
+            # Get own normalized x location, speed, lane and edge
+            edge_num = self.k.vehicle.get_edge(rl_id)
+            if edge_num is None or edge_num == '' or edge_num[0] == ':':
+                edge_num = -1
+            else:
+                edge_num = int(edge_num) / 6
+
+            self_lane = self.k.vehicle.get_lane(rl_id)
+
+            # Very ugly bug fix
+            if self_lane > MAX_LANES or self_lane < 0:
+                print("SUMO returned very bad lane id")
+                self_lane = 0
+
+            self_observation = [
+                self.k.vehicle.get_x_by_id(rl_id) / 1000,
+                (self.k.vehicle.get_speed(rl_id) / self.max_speed),
+                (self_lane / MAX_LANES),
+                edge_num
+            ]
+
+            # First normalize the features for all lanes
+            lane_headways = np.array(self.k.vehicle.get_lane_headways(rl_id)) / headway_scale
+            lane_tailways = np.array(self.k.vehicle.get_lane_tailways(rl_id)) / headway_scale
+            vel_in_front = np.array(self.k.vehicle.get_lane_leaders_speed(rl_id)) / self.max_speed
+            vel_behind = np.array(self.k.vehicle.get_lane_followers_speed(rl_id)) / self.max_speed
+            type_of_vehicles_in_front = np.array([.5 if car_id in rl_ids else 1.
+                                                  for car_id in self.k.vehicle.get_lane_leaders(rl_id)])
+            type_of_vehicles_behind = np.array([.5 if car_id in rl_ids else 1.
+                                                for car_id in self.k.vehicle.get_lane_followers(rl_id)])
+
+            # origs = (lane_headways.copy(), lane_tailways.copy(), vel_in_front.copy(), vel_behind.copy(),
+            #          type_of_vehicles_in_front.copy(), type_of_vehicles_behind.copy())
+
+            # Pad the normalized features with -1s
+            lane_headways = np.concatenate(([-1], lane_headways, [-1]))
+            lane_tailways = np.concatenate(([-1], lane_tailways, [-1]))
+            vel_in_front = np.concatenate(([-1], vel_in_front, [-1]))
+            vel_behind = np.concatenate(([-1], vel_behind, [-1]))
+            type_of_vehicles_in_front = np.concatenate(([-1], type_of_vehicles_in_front, [-1]))
+            type_of_vehicles_behind = np.concatenate(([-1], type_of_vehicles_behind, [-1]))
+
+            # Selecting the three closest lanes
+            self_lane += 1  # Because we padded the lanes with 0s
+            lane_headways = lane_headways[self_lane - 1:self_lane + 2]
+            lane_tailways = lane_tailways[self_lane - 1:self_lane + 2]
+            vel_in_front = vel_in_front[self_lane - 1:self_lane + 2]
+            vel_behind = vel_behind[self_lane - 1:self_lane + 2]
+            type_of_vehicles_in_front = type_of_vehicles_in_front[self_lane - 1:self_lane + 2]
+            type_of_vehicles_behind = type_of_vehicles_behind[self_lane - 1:self_lane + 2]
+
+            # Sometimes the
+
+            relative_observation = np.concatenate((lane_headways, lane_tailways, vel_in_front, vel_behind,
+                                                   type_of_vehicles_in_front, type_of_vehicles_behind))
+            if len(relative_observation) != 18:
+                s_arrays = (lane_headways, lane_tailways, vel_in_front, vel_behind, type_of_vehicles_in_front,
+                            type_of_vehicles_behind)
+                print(self_lane)
+                # print('\n{}\n'.format("\n".join(map(str, origs))))
+                print('\n{}\n'.format("\n".join(map(str, s_arrays))))
+
+            obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
+
+        return obs
 
     def compute_reward(self, rl_actions, **kwargs):
         """
