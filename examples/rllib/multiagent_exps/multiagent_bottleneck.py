@@ -1,6 +1,7 @@
 """Multi-agent bottleneck.
 
 """
+import sys
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -88,13 +89,15 @@ inflow.add(
     edge="1",
     vehs_per_hour=flow_rate * (1 - AV_FRAC),
     departLane="random",
-    departSpeed=10)
+    departSpeed=10,
+    name="inflow_human")
 inflow.add(
     veh_type="rl",
     edge="1",
     vehs_per_hour=flow_rate * AV_FRAC,
     departLane="random",
-    departSpeed=10)
+    departSpeed=10,
+    name="inflow_rl")
 
 traffic_lights = TrafficLightParams()
 if not DISABLE_TB:
@@ -234,13 +237,13 @@ if __name__ == '__main__':
         flow_params['exp_tag']: {
             'run': alg_run,
             'env': env_name,
-            'checkpoint_freq': 1,
+            'checkpoint_freq': 10,
             'checkpoint_at_end': True,
             'stop': {
                 'training_iteration': 500
             },
             'config': config,
             # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
-            # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-29_13-19-227pc6_esq/checkpoint_120/checkpoint-120'
+            **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
         },
     })
