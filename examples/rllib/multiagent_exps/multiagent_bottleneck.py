@@ -36,6 +36,8 @@ N_CPUS = 4
 # number of rollouts per training iteration
 N_ROLLOUTS = N_CPUS * 4
 
+#
+
 SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
