@@ -65,6 +65,10 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         super().__init__(env_params, sim_params, network, simulator)
         self.max_speed = self.k.network.max_speed()
 
+        self.nr_self_perc_features = 3  # Nr of features an rl car perceives from itself
+        self.perc_lanes_around = 1  # Nr of lanes the car perceives around its own lane
+        self.features_per_car = 3  # Nr of features the rl car observes per other car
+
     # def step(self, rl_actions):
     #     ret = super().step(rl_actions)
     #     print("Step {}\n\t{}\n\t{}\n\t{}\n\t{}".format(self.time_counter, self.k.vehicle.get_ids(),
@@ -183,83 +187,108 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
 
     @property
     def observation_space(self):
-        """See class definition."""
-        lb = [0] * 4 + [-1] * 18
-        ub = [1] * 4 + [1] * 18
+        """See class definition. 2 = headway + tailway // left + right"""
+
+        perceived_lanes = 2 * self.perc_lanes_around + 1                    # 2*sides + own lane
+        perceived_cars = 2 * perceived_lanes                                # front + back
+        perceived_features_others = perceived_cars * self.features_per_car  # nr of cars * (nr of features/other car)
+        total_features = perceived_features_others + self.nr_self_perc_features
+
+        return Box(low=-2000, high=2000, shape=(total_features,), dtype=np.float32)
 
         return Box(np.array(lb), np.array(ub), dtype=np.float32)
 
+    def get_label(self, veh_id):
+        if 'rl' in veh_id:
+            return 2.
+        elif 'human' in veh_id:
+            return 1.
+        return 0.
+
     def get_state(self):
-        """See class definition."""
+        """Returns state representation per RL vehicle."""
         obs = {}
-        headway_scale = 1000
 
-        rl_ids = self.k.vehicle.get_rl_ids()
+        for veh_id in self.k.vehicle.get_rl_ids():
 
-        for rl_id in rl_ids:
-            # Get own normalized x location, speed, lane and edge
-            edge_num = self.k.vehicle.get_edge(rl_id)
-            if edge_num is None or edge_num == '' or edge_num[0] == ':':
-                edge_num = -1
-            else:
-                edge_num = int(edge_num) / 6
+            edge = self.k.vehicle.get_edge(veh_id)
+            lane = self.k.vehicle.get_lane(veh_id)
+            veh_x_pos = self.k.vehicle.get_x_by_id(veh_id)
+                                                                        # Infos the car stores about itself:
+            self_representation = [veh_x_pos,                           # Car's current x-position along the road
+                                   self.k.vehicle.get_speed(veh_id),    # Car's current speed
+                                   self.k.network.speed_limit(edge)]    # How fast car may drive (reference value)
 
-            self_lane = self.k.vehicle.get_lane(rl_id)
+            others_representation = []                                  # Representation of surrounding vehicles
 
-            # Very ugly bug fix
-            if self_lane > MAX_LANES or self_lane < 0:
-                print("SUMO returned very bad lane id")
-                self_lane = 0
+            ### Headway ###
 
-            self_observation = [
-                self.k.vehicle.get_x_by_id(rl_id) / 1000,
-                (self.k.vehicle.get_speed(rl_id) / self.max_speed),
-                (self_lane / MAX_LANES),
-                edge_num
-            ]
+            # Returned ids sorted by lane index
+            leading_cars_ids = self.k.vehicle.get_lane_leaders(veh_id)
+            leading_cars_dist = [self.k.vehicle.get_x_by_id(lead_id) - veh_x_pos for lead_id in leading_cars_ids]
+            leading_cars_labels = [self.get_label(leading_id) for leading_id in leading_cars_ids]
+            leading_cars_speed = self.k.vehicle.get_speed(leading_cars_ids, error=float(self.k.network.max_speed()))
+            leading_cars_lanes = self.k.vehicle.get_lane(leading_cars_ids)
 
-            # First normalize the features for all lanes
-            lane_headways = np.array(self.k.vehicle.get_lane_headways(rl_id)) / headway_scale
-            lane_tailways = np.array(self.k.vehicle.get_lane_tailways(rl_id)) / headway_scale
-            vel_in_front = np.array(self.k.vehicle.get_lane_leaders_speed(rl_id)) / self.max_speed
-            vel_behind = np.array(self.k.vehicle.get_lane_followers_speed(rl_id)) / self.max_speed
-            type_of_vehicles_in_front = np.array([.5 if car_id in rl_ids else 1.
-                                                  for car_id in self.k.vehicle.get_lane_leaders(rl_id)])
-            type_of_vehicles_behind = np.array([.5 if car_id in rl_ids else 1.
-                                                for car_id in self.k.vehicle.get_lane_followers(rl_id)])
+            # Sorted increasingly by lane from 0 to nr of lanes
+            headway_cars_map = list(zip(leading_cars_lanes,
+                                        leading_cars_labels,
+                                        leading_cars_dist,
+                                        leading_cars_speed))
 
-            # origs = (lane_headways.copy(), lane_tailways.copy(), vel_in_front.copy(), vel_behind.copy(),
-            #          type_of_vehicles_in_front.copy(), type_of_vehicles_behind.copy())
+            for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
+                if 0 <= l < self.k.network.num_lanes(edge):
+                    # Valid lane value (=lane value inside set of existing lanes)
+                    if headway_cars_map[l][0] == l:
+                        # There is a car on this lane in front since lane-value in map is not equal to error-code
+                        others_representation.extend(headway_cars_map[l][1:])  # Add [idX, distX, speedX]
+                    else:
+                        # There is no car in respective lane in front of rl car since lane-value == error-code
+                        others_representation.extend([0., 1000, float(self.k.network.max_speed())])
+                else:
+                    # Lane to left/right does not exist. Pad values with -1.'s
+                    others_representation.extend([-1.] * self.features_per_car)
 
-            # Pad the normalized features with -1s
-            lane_headways = np.concatenate(([-1], lane_headways, [-1]))
-            lane_tailways = np.concatenate(([-1], lane_tailways, [-1]))
-            vel_in_front = np.concatenate(([-1], vel_in_front, [-1]))
-            vel_behind = np.concatenate(([-1], vel_behind, [-1]))
-            type_of_vehicles_in_front = np.concatenate(([-1], type_of_vehicles_in_front, [-1]))
-            type_of_vehicles_behind = np.concatenate(([-1], type_of_vehicles_behind, [-1]))
+            ### Tailway ###
 
-            # Selecting the three closest lanes
-            self_lane += 1  # Because we padded the lanes with 0s
-            lane_headways = lane_headways[self_lane - 1:self_lane + 2]
-            lane_tailways = lane_tailways[self_lane - 1:self_lane + 2]
-            vel_in_front = vel_in_front[self_lane - 1:self_lane + 2]
-            vel_behind = vel_behind[self_lane - 1:self_lane + 2]
-            type_of_vehicles_in_front = type_of_vehicles_in_front[self_lane - 1:self_lane + 2]
-            type_of_vehicles_behind = type_of_vehicles_behind[self_lane - 1:self_lane + 2]
+            # Sorted by lane index if not mistaken...
+            following_cars_ids = self.k.vehicle.get_lane_followers(veh_id)
+            following_cars_dist = [self.k.vehicle.get_x_by_id(follow_id) - veh_x_pos if not follow_id == ''
+                                   else -1000 for follow_id in following_cars_ids]
+            following_cars_labels = [self.get_label(following_id) for following_id in following_cars_ids]
+            following_cars_speed = self.k.vehicle.get_speed(following_cars_ids, error=0)
+            following_cars_lanes = self.k.vehicle.get_lane(following_cars_ids, error=-1001)
 
-            # Sometimes the
+            tailway_cars_map = list(zip(following_cars_lanes,
+                                        following_cars_labels,
+                                        following_cars_dist,
+                                        following_cars_speed))
 
-            relative_observation = np.concatenate((lane_headways, lane_tailways, vel_in_front, vel_behind,
-                                                   type_of_vehicles_in_front, type_of_vehicles_behind))
-            if len(relative_observation) != 18:
-                s_arrays = (lane_headways, lane_tailways, vel_in_front, vel_behind, type_of_vehicles_in_front,
-                            type_of_vehicles_behind)
-                print(self_lane)
-                # print('\n{}\n'.format("\n".join(map(str, origs))))
-                print('\n{}\n'.format("\n".join(map(str, s_arrays))))
+            for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
+                if 0 <= l < self.k.network.num_lanes(edge):
+                    # Valid lane value (=lane value inside set of existing lanes)
+                    if tailway_cars_map[l][0] == l:
+                        # There is a car on this lane behind since lane-value in map is not equal to error-code
+                        others_representation.extend(tailway_cars_map[l][1:])  # Add [idX, distX, speedX]
+                    else:
+                        # There is no car in respective lane behind rl car since lane-value == error-code
+                        others_representation.extend([0., -1000, 0])
+                else:
+                    # Lane to left/right does not exist. Pad values with -1.'s
+                    others_representation.extend([-1.] * self.features_per_car)
 
-            obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
+            # Merge two lists (self-representation & representation of surrounding lanes/cars) and transform to array
+            self_representation.extend(others_representation)
+            observation_arr = np.asarray(self_representation, dtype=float)
+
+            obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
+
+            # print('Self:')
+            # print(self_representation)
+            # print('Others:')
+            # print(others_representation)
+            # print('Combined:')
+            # print(observation_arr)
 
         return obs
 
