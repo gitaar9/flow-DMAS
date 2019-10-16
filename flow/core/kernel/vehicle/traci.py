@@ -495,6 +495,10 @@ class TraCIVehicle(KernelVehicle):
                 if 'rl' in veh_id:
                     num_rl_outflow += 1
 
+        #print('Arrived ids:')
+        #print(self._arrived_ids[-int(time_span / self.sim_step):])
+        #print('Left AVs: ' + str(num_rl_outflow))
+
         # Compute RL outflow rate as in general get_outflow_rate() above (but based on RL outflow only)
         return 3600 * num_rl_outflow / (len(recent_history) * self.sim_step)
 

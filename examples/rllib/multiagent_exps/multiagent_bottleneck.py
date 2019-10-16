@@ -28,6 +28,28 @@ from flow.core.params import VehicleParams
 from flow.controllers import RLController, ContinuousRouter, \
     SimLaneChangeController
 
+
+class WarmupSetter(object):
+
+    def __init__(self, initial_warmup_steps=200, warmup_steps_decay=0.05, min_warmup_steps=40):
+        self.warmup_steps = initial_warmup_steps
+        self.warmup_decay = warmup_steps_decay
+        self.min_warmup = min_warmup_steps
+
+    def get_warmup_steps(self):
+        self.warmup_steps = int(max(self.min_warmup, self.warmup_steps - self.warmup_decay))
+        print('Warmup steps: ' + str(self.warmup_steps))
+        return self.warmup_steps
+
+
+warmup_steps = 200
+
+
+def get_warmup_steps():
+    global warmup_steps
+    warmup_steps = int(max(40, warmup_steps - 1))
+    return warmup_steps
+
 # time horizon of a single rollout
 HORIZON = 1000
 # number of parallel workers
@@ -39,7 +61,7 @@ SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.50
+AV_FRAC = 0.20
 
 vehicles = VehicleParams()
 vehicles.add(
@@ -94,6 +116,8 @@ additional_env_params = {
     "inflow_range": [1000, 2000]
 }
 
+warmup_determiner = WarmupSetter()
+
 # flow rate
 flow_rate = 2300 * SCALING
 
@@ -104,13 +128,15 @@ inflow.add(
     edge="1",
     vehs_per_hour=flow_rate * (1 - AV_FRAC),
     departLane="random",
-    departSpeed="random")
+    departSpeed=10,  # "random"
+    name="inflow_human")
 inflow.add(
     veh_type="rl",
     edge="1",
     vehs_per_hour=flow_rate * AV_FRAC,
     departLane="random",
-    departSpeed="random")
+    departSpeed=10,  # "random"
+    name="inflow_rl")
 
 traffic_lights = TrafficLightParams()
 if not DISABLE_TB:
@@ -146,7 +172,7 @@ flow_params = dict(
 
     # environment related parameters (see flow.core.params.EnvParams)
     env=EnvParams(
-        warmup_steps=10,  # Get randomized training onsets
+        warmup_steps=get_warmup_steps(),  # warmup_determiner.get_warmup_steps(),  # Get randomized training onsets
         sims_per_step=1,
         horizon=HORIZON,
         additional_params=additional_env_params,
@@ -203,8 +229,8 @@ def setup_exps(flow_params):
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['simple_optimizer'] = True
     config['gamma'] = 0.99  # discount rate
-    config['model'].update({'fcnet_hiddens': [28, 28]})  # Curr. obs. space size: X=21, layer's X*X dim should be higher
-    config['lr'] = tune.grid_search([1e-5])
+    config['model'].update({'fcnet_hiddens': [64, 64]})
+    config['lr'] = tune.grid_search([1e-4])
     config['horizon'] = HORIZON
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
@@ -251,7 +277,7 @@ if __name__ == '__main__':
         flow_params['exp_tag']: {
             'run': alg_run,
             'env': env_name,
-            'checkpoint_freq': 10,
+            'checkpoint_freq': 5,
             'checkpoint_at_end': True,
             'stop': {
                 'training_iteration': 100

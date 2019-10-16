@@ -89,13 +89,13 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         perceived_features_others = perceived_cars * self.features_per_car  # nr of cars * (nr of features/other car)
         total_features = perceived_features_others + self.nr_self_perc_features
 
-        return Box(low=0, high=1, shape=(total_features,), dtype=np.float32)
+        return Box(low=-2000, high=2000, shape=(total_features,), dtype=np.float32)
 
     def get_key(self, tpl):
         return tpl[0]
 
     def get_label(self, veh_id):
-        if 'rl' in veh_id or 'flow' in veh_id:
+        if 'rl' in veh_id:
             return 2.
         elif 'human' in veh_id:
             return 1.
@@ -179,19 +179,28 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
             obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
 
+            # print('Self:')
+            # print(self_representation)
+            # print('Others:')
+            # print(others_representation)
+            # print('Combined:')
+            # print(observation_arr)
+
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
         """(RL-)Outflow rate over last ten seconds normalized to max of 1."""
         return_rewards = {}
-        scaling_factor_speed = 3    # How much to scale reward for sticking close to speed limit    (personal)
-        scaling_factor_ofr = 5      # How much to scale reward for high ofr = out flow rate         (shared)
+        scaling_factor_speed = 1    # How much to scale reward for sticking close to speed limit    (personal)
+        scaling_factor_ofr = 1      # How much to scale reward for high ofr = out flow rate         (shared)
+        avg_speed_compliance = 0
 
         # Option 1: Reward based on overall outflow rate:
         # reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
         # Option 2: Reward based on RL(-only)-outflow rate:
-        reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        rl_outflow_rate = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        reward = rl_outflow_rate
 
         # Get how fast each vehicle was in prev time step & how fast it was allowed to drive
         all_veh_speeds = self.k.vehicle.get_speed(self.k.vehicle.get_rl_ids())  # Get each car's current speed
@@ -216,11 +225,14 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                 pers_reward += (1/(all_veh_speeds[i] / all_veh_max_speeds[i]))
                 # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i]))))
 
+            avg_speed_compliance += pers_reward
+
             # Weight and sum up shared and personal rewards
-            reward = reward * scaling_factor_ofr + pers_reward * scaling_factor_speed
+            # reward = reward * scaling_factor_ofr + pers_reward * scaling_factor_speed
+            reward = reward + pers_reward
 
             # Normalize personal reward; Weighting: compliance_with_speed_limit=3; rl_outflow_rate=5; i.e. 3:5
-            reward /= (scaling_factor_ofr + scaling_factor_speed)
+            # reward /= (scaling_factor_ofr + scaling_factor_speed)
 
             # Scale (weighted) reward to speed up training
             # reward *= 3
@@ -229,6 +241,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
             return_rewards[rl_id] = reward
             # print('Veh-ID: ' + rl_id + ' Reward: ' + str(reward))
 
+        print('RL-Outflow rate: ' + str(rl_outflow_rate) + ' Avg speed compliance: ' +
+              str(avg_speed_compliance/len(self.k.vehicle.get_rl_ids())))
         return return_rewards
 
     @property
