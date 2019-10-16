@@ -1,11 +1,17 @@
-"""Bottleneck example.
+"""Multi-agent bottleneck.
 
-Bottleneck in which the actions are specifying a desired velocity
-in a segment of space
 """
+import sys
+
+try:
+    from ray.rllib.agents.agent import get_agent_class
+except ImportError:
+    from ray.rllib.agents.registry import get_agent_class
 import json
 
 import ray
+from ray import tune
+from ray.rllib.agents.ppo.ppo_policy_graph import PPOPolicyGraph
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -26,7 +32,7 @@ from flow.controllers import RLController, ContinuousRouter, \
 # time horizon of a single rollout
 HORIZON = 1000
 # number of parallel workers
-N_CPUS = 2
+N_CPUS = 4
 # number of rollouts per training iteration
 N_ROLLOUTS = N_CPUS * 4
 
@@ -49,7 +55,7 @@ vehicles.add(
     ),
     num_vehicles=1 * SCALING)
 vehicles.add(
-    veh_id="followerstopper",
+    veh_id="rl",
     acceleration_controller=(RLController, {}),
     lane_change_controller=(SimLaneChangeController, {}),
     routing_controller=(ContinuousRouter, {}),
@@ -61,16 +67,11 @@ vehicles.add(
     ),
     num_vehicles=1 * SCALING)
 
-controlled_segments = [("1", 1, False), ("2", 2, True), ("3", 2, True),
-                       ("4", 2, True), ("5", 1, False)]
-num_observed_segments = [("1", 1), ("2", 3), ("3", 3), ("4", 3), ("5", 1)]
 additional_env_params = {
     "target_velocity": 40,
     "disable_tb": True,
     "disable_ramp_metering": True,
-    "controlled_segments": controlled_segments,
     "symmetric": False,
-    "observed_segments": num_observed_segments,
     "reset_inflow": False,
     "lane_change_duration": 5,
     "max_accel": 3,
@@ -88,13 +89,15 @@ inflow.add(
     edge="1",
     vehs_per_hour=flow_rate * (1 - AV_FRAC),
     departLane="random",
-    departSpeed=10)
+    departSpeed=10,
+    name="inflow_human")
 inflow.add(
-    veh_type="followerstopper",
+    veh_type="rl",
     edge="1",
     vehs_per_hour=flow_rate * AV_FRAC,
     departLane="random",
-    departSpeed=10)
+    departSpeed=10,
+    name="inflow_rl")
 
 traffic_lights = TrafficLightParams()
 if not DISABLE_TB:
@@ -109,10 +112,10 @@ net_params = NetParams(
 
 flow_params = dict(
     # name of the experiment
-    exp_tag="DesiredVelocity",
+    exp_tag="MultiAgentDesiredVelocity",
 
     # name of the flow environment the experiment is running on
-    env_name="BottleneckDesiredVelocityEnv",
+    env_name="BottleneckFlowRewardMultiAgentEnv",
 
     # name of the network class the experiment is running on
     network="BottleneckNetwork",
@@ -162,8 +165,14 @@ flow_params = dict(
 )
 
 
-def setup_exps():
-    """Return the relevant components of an RLlib experiment.
+# SET UP EXPERIMENT
+def setup_exps(flow_params):
+    """Create the relevant components of a multiagent RLlib experiment.
+
+    Parameters
+    ----------
+    flow_params : dict
+        input flow-parameters
 
     Returns
     -------
@@ -174,49 +183,68 @@ def setup_exps():
     dict
         training configuration parameters
     """
-    alg_run = "PPO"
-
+    alg_run = 'PPO'
     agent_cls = get_agent_class(alg_run)
     config = agent_cls._default_config.copy()
-    config["num_workers"] = N_CPUS
-    config["train_batch_size"] = HORIZON * N_ROLLOUTS
-    config["gamma"] = 0.999  # discount rate
-    config["model"].update({"fcnet_hiddens": [64, 64]})
-    config["use_gae"] = True
-    config["lambda"] = 0.97
-    config["kl_target"] = 0.02
-    config["num_sgd_iter"] = 10
-    config['clip_actions'] = False  # FIXME(ev) temporary ray bug
-    config["horizon"] = HORIZON
+    config['num_workers'] = N_CPUS
+    config['train_batch_size'] = HORIZON * N_ROLLOUTS
+    config['gamma'] = 0.999  # discount rate
+    config['model'].update({'fcnet_hiddens': [64, 64]})
+    config['lr'] = 4e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
+    config['clip_actions'] = False
+    config['observation_filter'] = 'NoFilter'
+    config['simple_optimizer'] = True
+    config['horizon'] = HORIZON
 
     # save the flow params for replay
-    flow_json = json.dumps(
-        flow_params, cls=FlowParamsEncoder, sort_keys=True, indent=4)
+    flow_json = json.dumps(flow_params, cls=FlowParamsEncoder, sort_keys=True, indent=4)
     config['env_config']['flow_params'] = flow_json
     config['env_config']['run'] = alg_run
 
-    create_env, gym_name = make_create_env(params=flow_params, version=0)
+    create_env, env_name = make_create_env(params=flow_params, version=0)
 
-    # Register as rllib env
-    register_env(gym_name, create_env)
-    return alg_run, gym_name, config
+    # register as rllib env
+    register_env(env_name, create_env)
 
+    # multiagent configuration
+    temp_env = create_env()
+    policy_graphs = {'av': (PPOPolicyGraph,
+                            temp_env.observation_space,
+                            temp_env.action_space,
+                            {})}
 
-if __name__ == "__main__":
-    alg_run, gym_name, config = setup_exps()
-    ray.init(num_cpus=N_CPUS + 1, redirect_output=False)
-    trials = run_experiments({
-        flow_params["exp_tag"]: {
-            "run": alg_run,
-            "env": gym_name,
-            "config": {
-                **config
-            },
-            "checkpoint_freq": 20,
-            "checkpoint_at_end": True,
-            "max_failures": 999,
-            "stop": {
-                "training_iteration": 200,
-            },
+    def policy_mapping_fn(_):
+        return 'av'
+
+    config.update({
+        'multiagent': {
+            'policy_graphs': policy_graphs,
+            'policy_mapping_fn': tune.function(policy_mapping_fn),
+            'policies_to_train': ['av']
         }
+    })
+
+    return alg_run, env_name, config
+
+
+# RUN EXPERIMENT
+
+if __name__ == '__main__':
+    alg_run, env_name, config = setup_exps(flow_params)
+    ray.init(num_cpus=N_CPUS + 1)
+
+    run_experiments({
+        flow_params['exp_tag']: {
+            'run': alg_run,
+            'env': env_name,
+            'checkpoint_freq': 10,
+            'checkpoint_at_end': True,
+            'stop': {
+                'training_iteration': 500
+            },
+            'config': config,
+            'local_dir': '/content/gdrive/My Drive/',
+            # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
+            **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
+        },
     })

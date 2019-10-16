@@ -62,6 +62,9 @@ class Experiment:
         logging.info(" Starting experiment {} at {}".format(
             env.network.name, str(datetime.datetime.utcnow())))
 
+        print("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+        print(str(datetime.datetime.utcnow()))
+
         logging.info("Initializing environment.")
 
     def run(self, num_runs, num_steps, rl_actions=None, convert_to_csv=False):

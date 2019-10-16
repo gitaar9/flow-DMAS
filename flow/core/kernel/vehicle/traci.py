@@ -67,6 +67,7 @@ class TraCIVehicle(KernelVehicle):
 
         # number of vehicles to exit the network for every time-step
         self._num_arrived = []
+        self._num_rl_arrived = []
         self._arrived_ids = []
 
         # whether or not to automatically color vehicles
@@ -163,6 +164,7 @@ class TraCIVehicle(KernelVehicle):
                 self.prev_last_lc[veh_id] = -float("inf")
             self._num_departed.clear()
             self._num_arrived.clear()
+            self._num_rl_arrived.clear()
             self._departed_ids.clear()
             self._arrived_ids.clear()
 
@@ -193,6 +195,9 @@ class TraCIVehicle(KernelVehicle):
             self._num_arrived.append(len(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))
             self._departed_ids.append(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS])
             self._arrived_ids.append(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS])
+            # num arrived used for our reward function
+            self._num_rl_arrived.append(len(list(
+                filter(lambda car_id: car_id in self.__rl_ids, sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))))
 
         # update the "headway", "leader", and "follower" variables
         for veh_id in self.__ids:
@@ -471,6 +476,13 @@ class TraCIVehicle(KernelVehicle):
         if len(self._num_arrived) == 0:
             return 0
         num_outflow = self._num_arrived[-int(time_span / self.sim_step):]
+        return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
+
+    def get_rl_outflow_rate(self, time_span):
+        """See parent class."""
+        if len(self._num_rl_arrived) == 0:
+            return 0
+        num_outflow = self._num_rl_arrived[-int(time_span / self.sim_step):]
         return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
 
     def get_num_arrived(self):
