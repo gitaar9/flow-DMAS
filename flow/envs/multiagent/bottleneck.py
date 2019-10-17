@@ -275,16 +275,6 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
         :param kwargs: Can contain fail, to indicate that a crash happened
         :return: The individual reward for every agent
         """
-        if self.env_params.evaluate:
-            if self.time_counter == self.env_params.horizon:
-                outflow_all = self.k.vehicle.get_outflow_rate(500)
-                outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
-                outflow_human = outflow_all - outflow_rl
-                fused = "{}{}".format(self.fill_with_zeros(str(outflow_human)), self.fill_with_zeros(str(outflow_rl)))
-                return int(fused)
-            else:
-                return 0
-
         # if a crash occurred everybody gets 0
         if kwargs['fail']:
             return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
@@ -294,11 +284,23 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
 
         rl_agent_rewards = {}
         if rl_actions:
-            for rl_id in self.k.vehicle.get_rl_ids():
-                # Reward desired velocity in own edge + the total outflow
-                edge_num = self.k.vehicle.get_edge(rl_id)
-                rl_agent_rewards[rl_id] = rewards.desired_velocity(self, edge_list=[edge_num], use_only_rl_ids=True) \
-                                          + outflow_reward
+            if self.env_params.evaluate:
+                if self.time_counter == self.env_params.horizon:
+                    outflow_all = self.k.vehicle.get_outflow_rate(500)
+                    outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
+                    outflow_human = outflow_all - outflow_rl
+                    fused = "{}{}".format(self.fill_with_zeros(str(outflow_human)),
+                                          self.fill_with_zeros(str(outflow_rl)))
+                    fused = int(fused)
+                    rl_agent_rewards = {rl_id: fused for rl_id in self.k.vehicle.get_rl_ids()}
+                else:
+                    return 0
+            else:
+                for rl_id in self.k.vehicle.get_rl_ids():
+                    # Reward desired velocity in own edge + the total outflow
+                    edge_num = self.k.vehicle.get_edge(rl_id)
+                    rl_agent_rewards[rl_id] = rewards.desired_velocity(self, edge_list=[edge_num], use_only_rl_ids=True) \
+                                              + outflow_reward
 
         return rl_agent_rewards
 
