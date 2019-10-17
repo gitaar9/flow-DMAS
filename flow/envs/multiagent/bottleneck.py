@@ -252,16 +252,22 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
 
             relative_observation = np.concatenate((lane_headways, lane_tailways, vel_in_front, vel_behind,
                                                    type_of_vehicles_in_front, type_of_vehicles_behind))
-            if len(relative_observation) != 18:
-                s_arrays = (lane_headways, lane_tailways, vel_in_front, vel_behind, type_of_vehicles_in_front,
-                            type_of_vehicles_behind)
-                print(self_lane)
-                # print('\n{}\n'.format("\n".join(map(str, origs))))
-                print('\n{}\n'.format("\n".join(map(str, s_arrays))))
+            # if len(relative_observation) != 18:
+            #     s_arrays = (lane_headways, lane_tailways, vel_in_front, vel_behind, type_of_vehicles_in_front,
+            #                 type_of_vehicles_behind)
+            #     print(self_lane)
+            #     # print('\n{}\n'.format("\n".join(map(str, origs))))
+            #     print('\n{}\n'.format("\n".join(map(str, s_arrays))))
 
             obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
 
         return obs
+
+    @staticmethod
+    def fill_with_zeros(string):
+        array = [c for c in string]
+        zeros = ["0" for _ in range(4 - len(array))]
+        return "".join(zeros + array)
 
     def compute_reward(self, rl_actions, **kwargs):
         """
@@ -269,6 +275,16 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
         :param kwargs: Can contain fail, to indicate that a crash happened
         :return: The individual reward for every agent
         """
+        if self.env_params.evaluate:
+            if self.time_counter == self.env_params.horizon:
+                outflow_all = self.k.vehicle.get_outflow_rate(500)
+                outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
+                outflow_human = outflow_all - outflow_rl
+                fused = "{}{}".format(self.fill_with_zeros(str(outflow_human)), self.fill_with_zeros(str(outflow_rl)))
+                return int(fused)
+            else:
+                return 0
+
         # if a crash occurred everybody gets 0
         if kwargs['fail']:
             return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}

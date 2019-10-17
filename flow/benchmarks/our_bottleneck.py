@@ -119,6 +119,7 @@ flow_params = dict(
         sims_per_step=1,
         horizon=HORIZON,
         additional_params=additional_env_params,
+        evaluate=True
     ),
 
     # network-related parameters (see flow.core.params.NetParams and the
