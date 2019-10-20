@@ -179,7 +179,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     self.k.vehicle.apply_lane_change(str(rl_id), round(actions[1]))
 
 
-class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
+class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
 
     @property
     def observation_space(self):
@@ -318,17 +318,14 @@ class BottleneckDanielMultiAgentEnv(BottleneckMultiAgentEnv):
 
     @property
     def observation_space(self):
-        """See class definition. 2 = headway + tailway """
+        """Returns size of input tensor passed to RL network. 2 = headway + tailway // left + right"""
 
-        perceived_lanes = 2 * self.perc_lanes_around + 1  # 2*sides + own lane
-        perceived_cars = 2 * perceived_lanes  # front + back
+        perceived_lanes = 2 * self.perc_lanes_around + 1                    # 2*sides + own lane
+        perceived_cars = 2 * perceived_lanes                                # front + back
         perceived_features_others = perceived_cars * self.features_per_car  # nr of cars * (nr of features/other car)
         total_features = perceived_features_others + self.nr_self_perc_features
 
-        return Box(low=0, high=1, shape=(total_features,), dtype=np.float32)
-
-    def get_key(self, tpl):
-        return tpl[0]
+        return Box(low=-2000, high=2000, shape=(total_features,), dtype=np.float32)
 
     def get_label(self, veh_id):
         if 'rl' in veh_id:
@@ -338,125 +335,112 @@ class BottleneckDanielMultiAgentEnv(BottleneckMultiAgentEnv):
         return 0.
 
     def get_state(self):
-        """See class definition."""
+        """Returns state representation per RL vehicle."""
         obs = {}
 
         for veh_id in self.k.vehicle.get_rl_ids():
-            if 'rl' in veh_id:
-                edge = self.k.vehicle.get_edge(veh_id)
-                lane = self.k.vehicle.get_lane(veh_id)
-                veh_x_pos = self.k.vehicle.get_x_by_id(veh_id)
-                # Infos the car stores about itsels:
-                self_representation = [veh_x_pos,  # Car's current x-position along the road
-                                       self.k.vehicle.get_speed(veh_id),  # Car's current speed
-                                       self.k.network.speed_limit(edge)]  # How fast car may drive (reference value)
 
-                others_representation = []  # Representation of surrounding vehicles
+            edge = self.k.vehicle.get_edge(veh_id)
+            lane = self.k.vehicle.get_lane(veh_id)
+            veh_x_pos = self.k.vehicle.get_x_by_id(veh_id)
+                                                                        # Infos the car stores about itself:
+            self_representation = [veh_x_pos,                           # Car's current x-position along the road
+                                   self.k.vehicle.get_speed(veh_id),    # Car's current speed
+                                   self.k.network.speed_limit(edge)]    # How fast car may drive (reference value)
 
-                ### Headway ###
+            others_representation = []                                  # Representation of surrounding vehicles
 
-                # Returned ids sorted by lane index
-                leading_cars_ids = self.k.vehicle.get_lane_leaders(veh_id)
-                leading_cars_dist = [self.k.vehicle.get_x_by_id(lead_id) - veh_x_pos for lead_id in leading_cars_ids]
-                leading_cars_labels = [self.get_label(leading_id) for leading_id in leading_cars_ids]
-                leading_cars_speed = self.k.vehicle.get_speed(leading_cars_ids, error=float(self.k.network.max_speed()))
-                leading_cars_lanes = self.k.vehicle.get_lane(leading_cars_ids)
+            ### Headway ###
 
-                # Sorted increasingly by lane from 0 to nr of lanes
-                headway_cars_map = list(zip(leading_cars_lanes,
-                                            leading_cars_labels,
-                                            leading_cars_dist,
-                                            leading_cars_speed))
+            # Returned ids sorted by lane index
+            leading_cars_ids = self.k.vehicle.get_lane_leaders(veh_id)
+            leading_cars_dist = [self.k.vehicle.get_x_by_id(lead_id) - veh_x_pos for lead_id in leading_cars_ids]
+            leading_cars_labels = [self.get_label(leading_id) for leading_id in leading_cars_ids]
+            leading_cars_speed = self.k.vehicle.get_speed(leading_cars_ids, error=float(self.k.network.max_speed()))
+            leading_cars_lanes = self.k.vehicle.get_lane(leading_cars_ids)
 
-                for l in range(lane - self.perc_lanes_around,
-                               lane + self.perc_lanes_around + 1):  # Interval +/- 1 around rl car's lane
-                    if 0 <= l < self.k.network.num_lanes(edge):
-                        # Valid lane value (=lane value inside set of existing lanes)
-                        if headway_cars_map[l][0] == l:
-                            # There is a car on this lane in front since lane-value in map is not equal to error-code
-                            others_representation.extend(headway_cars_map[l][1:])  # Add [idX, distX, speedX]
-                        else:
-                            # There is no car in respective lane in front of rl car since lane-value == error-code
-                            others_representation.extend([0., 1000, float(self.k.network.max_speed())])
+            # Sorted increasingly by lane from 0 to nr of lanes
+            headway_cars_map = list(zip(leading_cars_lanes,
+                                        leading_cars_labels,
+                                        leading_cars_dist,
+                                        leading_cars_speed))
+
+            for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
+                if 0 <= l < self.k.network.num_lanes(edge):
+                    # Valid lane value (=lane value inside set of existing lanes)
+                    if headway_cars_map[l][0] == l:
+                        # There is a car on this lane in front since lane-value in map is not equal to error-code
+                        others_representation.extend(headway_cars_map[l][1:])  # Add [idX, distX, speedX]
                     else:
-                        # Lane to left/right does not exist. Pad values with -1.'s
-                        others_representation.extend([-1.] * self.features_per_car)
+                        # There is no car in respective lane in front of rl car since lane-value == error-code
+                        others_representation.extend([0., 1000, float(self.k.network.max_speed())])
+                else:
+                    # Lane to left/right does not exist. Pad values with -1.'s
+                    others_representation.extend([-1.] * self.features_per_car)
 
-                ### Tailway ###
+            ### Tailway ###
 
-                # Sorted by lane index if not mistaken...
-                following_cars_ids = self.k.vehicle.get_lane_followers(veh_id)
-                following_cars_dist = [self.k.vehicle.get_x_by_id(follow_id) - veh_x_pos if not follow_id == '' \
-                                           else -1000 for follow_id in following_cars_ids]
-                following_cars_labels = [self.get_label(following_id) for following_id in following_cars_ids]
-                following_cars_speed = self.k.vehicle.get_speed(following_cars_ids, error=0)
-                following_cars_lanes = self.k.vehicle.get_lane(following_cars_ids, error=-1001)
+            # Sorted by lane index if not mistaken...
+            following_cars_ids = self.k.vehicle.get_lane_followers(veh_id)
+            following_cars_dist = [self.k.vehicle.get_x_by_id(follow_id) - veh_x_pos if not follow_id == ''
+                                   else -1000 for follow_id in following_cars_ids]
+            following_cars_labels = [self.get_label(following_id) for following_id in following_cars_ids]
+            following_cars_speed = self.k.vehicle.get_speed(following_cars_ids, error=0)
+            following_cars_lanes = self.k.vehicle.get_lane(following_cars_ids, error=-1001)
 
-                tailway_cars_map = list(zip(following_cars_lanes,
-                                            following_cars_labels,
-                                            following_cars_dist,
-                                            following_cars_speed))
+            tailway_cars_map = list(zip(following_cars_lanes,
+                                        following_cars_labels,
+                                        following_cars_dist,
+                                        following_cars_speed))
 
-                for l in range(lane - self.perc_lanes_around,
-                               lane + self.perc_lanes_around + 1):  # Interval +/- 1 around rl car's lane
-                    if 0 <= l < self.k.network.num_lanes(edge):
-                        # Valid lane value (=lane value inside set of existing lanes)
-                        if tailway_cars_map[l][0] == l:
-                            # There is a car on this lane behind since lane-value in map is not equal to error-code
-                            others_representation.extend(tailway_cars_map[l][1:])  # Add [idX, distX, speedX]
-                        else:
-                            # There is no car in respective lane behind rl car since lane-value == error-code
-                            others_representation.extend([0., -1000, 0])
+            for l in range(lane-self.perc_lanes_around, lane+self.perc_lanes_around+1):  # Interval +/- 1 around rl car's lane
+                if 0 <= l < self.k.network.num_lanes(edge):
+                    # Valid lane value (=lane value inside set of existing lanes)
+                    if tailway_cars_map[l][0] == l:
+                        # There is a car on this lane behind since lane-value in map is not equal to error-code
+                        others_representation.extend(tailway_cars_map[l][1:])  # Add [idX, distX, speedX]
                     else:
-                        # Lane to left/right does not exist. Pad values with -1.'s
-                        others_representation.extend([-1.] * self.features_per_car)
+                        # There is no car in respective lane behind rl car since lane-value == error-code
+                        others_representation.extend([0., -1000, 0])
+                else:
+                    # Lane to left/right does not exist. Pad values with -1.'s
+                    others_representation.extend([-1.] * self.features_per_car)
 
-                # Merge two lists (self-representation & representation of surrounding lanes/cars) and transform to array
-                self_representation.extend(others_representation)
-                observation_arr = np.asarray(self_representation, dtype=float)
+            # Merge two lists (self-representation & representation of surrounding lanes/cars) and transform to array
+            self_representation.extend(others_representation)
+            observation_arr = np.asarray(self_representation, dtype=float)
 
-                obs[
-                    veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
+            obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
+
+            # print('Self:')
+            # print(self_representation)
+            # print('Others:')
+            # print(others_representation)
+            # print('Combined:')
+            # print(observation_arr)
 
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
-        """(RL-)Outflow rate over last ten seconds normalized to max of 1."""
-        return_rewards = {}
-        scaling_factor_speed = 3  # How much to scale reward for sticking close to speed limit
-        scaling_factor_ofr = 5  # How much to scale reward for high ofr = out flow rate
+        """
+        :param rl_actions: The output of the PPO network based on the last steps observation per agent
+        :param kwargs: Can contain fail, to indicate that a crash happened
+        :return: The individual reward for every agent
+        """
+        # if a crash occurred everybody gets 0
+        if kwargs['fail']:
+            return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
 
-        # Option 1: Reward based on overall outflow rate:
-        # reward = self.k.vehicle.get_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        # Average outflow over last 10 steps, divided 2000 * scaling.
+        # TODO: NEXT: try own reward computation
+        outflow_reward = 2/3 * self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
-        # Option 2: Reward based on RL(-only)-outflow rate:
-        reward = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        rl_agent_rewards = {}
+        if rl_actions:
+            for rl_id in self.k.vehicle.get_rl_ids():
+                # Reward desired velocity in own edge + the total outflow
+                edge_num = self.k.vehicle.get_edge(rl_id)
+                rl_agent_rewards[rl_id] = 1/3 * rewards.desired_velocity(self, edge_list=[edge_num],
+                                                                         use_only_rl_ids=True) + outflow_reward
 
-        reward *= scaling_factor_ofr  # Make positive behavior even more rewarding by scaling reward (speed up training)
-
-        all_veh_speeds = self.k.vehicle.get_speed(self.k.vehicle.get_rl_ids())  # Get each car's current speed
-        all_veh_edges = self.k.vehicle.get_edge(self.k.vehicle.get_rl_ids())  # Get info in which edge each car is
-        all_veh_max_speeds = [self.k.network.speed_limit(edge) for edge in
-                              all_veh_edges]  # Get each car's edge's speed limit
-
-        # This (rl-)outflow-rate-based reward applies to all rl vehicles individually.
-        # Assign to each, filter for rl-only & add possibly car-specific rewards:
-        # Main focus shall remain on RL outflow rate; Policies will be learned to reach that goal eventually.
-        for i, rl_id in enumerate(self.k.vehicle.get_rl_ids()):
-            # Make sure reward for flow-simulated vehicles does not get returned: filter for true rl cars
-            if 'rl' in rl_id:
-                # Take into account how closely car sticks to speed limit. The closer, the better/more rewarding:
-                # print('Car: ' + str(rl_id) + ' Max speed: ' + str(all_veh_max_speeds[i]) + ' Actual speed: ' \
-                # + str(all_veh_speeds[i]))
-                if all_veh_speeds[i] < all_veh_max_speeds[i]:
-                    reward += (all_veh_speeds[i] / all_veh_max_speeds[i]) * scaling_factor_speed
-                    # print('Incremented reward by: ' + str((all_veh_speeds[i]/all_veh_max_speeds[i])*10))
-                else:
-                    reward += (1 / (all_veh_speeds[i] / all_veh_max_speeds[i])) * scaling_factor_speed
-                    # print('Incremented reward by: ' + str((1/(all_veh_speeds[i] / all_veh_max_speeds[i])) * 10))
-
-                # Assign reward to vehicle:
-                return_rewards[rl_id] = reward
-                # print('Veh-ID: ' + rl_id + ' Reward: ' + str(reward))
-
-        return return_rewards
+        return rl_agent_rewards
