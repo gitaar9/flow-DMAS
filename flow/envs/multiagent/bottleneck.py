@@ -294,7 +294,7 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
                     fused = int(fused)
                     rl_agent_rewards = {rl_id: fused for rl_id in self.k.vehicle.get_rl_ids()}
                 else:
-                    return 0
+                    rl_agent_rewards = {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
             else:
                 for rl_id in self.k.vehicle.get_rl_ids():
                     # Reward desired velocity in own edge + the total outflow
