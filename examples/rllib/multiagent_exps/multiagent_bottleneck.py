@@ -32,15 +32,15 @@ from flow.controllers import RLController, ContinuousRouter, \
 # time horizon of a single rollout
 HORIZON = 1000
 # number of parallel workers
-N_CPUS = 7
+N_CPUS = 4
 # number of rollouts per training iteration
-N_ROLLOUTS = N_CPUS * 4
+N_ROLLOUTS = N_CPUS * 8
 
 SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.1
+AV_FRAC = 0.50
 
 vehicles = VehicleParams()
 vehicles.add(
@@ -115,7 +115,7 @@ flow_params = dict(
     exp_tag="MultiAgentDesiredVelocity",
 
     # name of the flow environment the experiment is running on
-    env_name="BottleneckFlowRewardMultiAgentEnv",
+    env_name="BottleneckDanielMultiAgentEnv",
 
     # name of the network class the experiment is running on
     network="BottleneckNetwork",
@@ -190,7 +190,7 @@ def setup_exps(flow_params, evaluate=False):
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['gamma'] = 0.999  # discount rate
     config['model'].update({'fcnet_hiddens': [64, 64]})
-    config['lr'] = 4e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
+    config['lr'] = 2e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
     config['simple_optimizer'] = True
@@ -244,6 +244,7 @@ if __name__ == '__main__':
                 'training_iteration': 500
             },
             'config': config,
+            'local_dir': '/content/gdrive/My Drive/',
             # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
             **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
         },

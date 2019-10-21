@@ -44,4 +44,3 @@ To visualize the simulation, follow these steps:
 </ul>
 
 The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library). Forcing the simulation to go beyond the initial ~200 steps will make yellow cars enter the simulation, currently the reason is unknown.
-
