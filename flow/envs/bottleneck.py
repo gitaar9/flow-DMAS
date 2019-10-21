@@ -523,7 +523,10 @@ class BottleneckAccelEnv(BottleneckEnv):
         super().__init__(env_params, sim_params, network, simulator)
         self.add_rl_if_exit = env_params.get_additional_param("add_rl_if_exit")
         self.num_rl = deepcopy(self.initial_vehicles.num_rl_vehicles)
-        self.rl_id_list = deepcopy(self.initial_vehicles.get_rl_ids())
+        # Following didn't work since simulation is initially empty (w/o vehicles,
+        # which seems to be special case scenario):
+        # self.rl_id_list = deepcopy(self.initial_vehicles.get_rl_ids())
+        self.rl_id_list = [('rl_' + str(i)) for i in range(network.vehicles.num_rl_vehicles)]
         self.max_speed = self.k.network.max_speed()
 
     @property

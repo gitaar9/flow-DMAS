@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def desired_velocity(env, fail=False, edge_list=None):
+def desired_velocity(env, fail=False, edge_list=None, use_only_rl_ids=False):
     r"""Encourage proximity to a desired velocity.
 
     This function measures the deviation of a system of vehicles from a
@@ -39,6 +39,9 @@ def desired_velocity(env, fail=False, edge_list=None):
         veh_ids = env.k.vehicle.get_ids()
     else:
         veh_ids = env.k.vehicle.get_ids_by_edge(edge_list)
+
+    if use_only_rl_ids:
+        veh_ids = list(filter(lambda car_id: car_id in env.k.vehicle.get_rl_ids(), veh_ids))
 
     vel = np.array(env.k.vehicle.get_speed(veh_ids))
     num_vehicles = len(veh_ids)
