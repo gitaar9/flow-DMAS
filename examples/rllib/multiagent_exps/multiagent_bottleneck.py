@@ -34,13 +34,13 @@ HORIZON = 1000
 # number of parallel workers
 N_CPUS = 4
 # number of rollouts per training iteration
-N_ROLLOUTS = N_CPUS * 8
+N_ROLLOUTS = N_CPUS * 4
 
 SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.50
+AV_FRAC = 0.10
 
 vehicles = VehicleParams()
 vehicles.add(
@@ -115,7 +115,7 @@ flow_params = dict(
     exp_tag="MultiAgentDesiredVelocity",
 
     # name of the flow environment the experiment is running on
-    env_name="BottleneckDanielMultiAgentEnv",
+    env_name="BottleneckThijsMultiAgentEnv",
 
     # name of the network class the experiment is running on
     network="BottleneckNetwork",
@@ -190,7 +190,7 @@ def setup_exps(flow_params, evaluate=False):
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['gamma'] = 0.999  # discount rate
     config['model'].update({'fcnet_hiddens': [64, 64]})
-    config['lr'] = 2e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
+    config['lr'] = 4e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
     config['simple_optimizer'] = True
