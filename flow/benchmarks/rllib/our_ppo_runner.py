@@ -35,6 +35,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "--upload_dir", type=str, help="S3 Bucket to upload to.")
 
+parser.add_argument(
+    "--checkpoint", type=str, help="The checkpoint to load.")
+
 # required input parameters
 parser.add_argument(
     "--benchmark_name", type=str, help="File path to solution environment.")
@@ -54,7 +57,7 @@ parser.add_argument(
     help="The number of cpus to use.")
 
 if __name__ == "__main__":
-    benchmark_name = 'grid0'
+    benchmark_name = 'our_bottleneck'
     args = parser.parse_args()
     # benchmark name
     benchmark_name = args.benchmark_name
@@ -64,6 +67,7 @@ if __name__ == "__main__":
     num_cpus = args.num_cpus
 
     upload_dir = args.upload_dir
+    checkpoint = args.checkpoint
 
     # Import the benchmark and fetch its flow_params
     benchmark = __import__(
@@ -71,8 +75,11 @@ if __name__ == "__main__":
     flow_params = benchmark.flow_params
 
     # initialize a ray instance
-    ray.init(num_cpus=num_cpus + 1)
-    alg_run, env_name, config = setup_exps(flow_params)
+    ray.init(num_cpus=8)
+    alg_run, env_name, config = setup_exps(flow_params, evaluate=True)
+    config['num_workers'] = num_cpus
+    config['train_batch_size'] = 1000 * num_rollouts  # 1000 is the horizon
+    config['lr'] = 0  # Stop learning
 
     exp_tag = {
         "run": alg_run,
@@ -86,6 +93,7 @@ if __name__ == "__main__":
             "training_iteration": 500
         },
         "num_samples": 3,
+        **({"restore": checkpoint} if checkpoint else {})
     }
 
     if upload_dir:

@@ -264,8 +264,8 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
         return obs
 
     @staticmethod
-    def fill_with_zeros(string):
-        array = [c for c in string]
+    def fill_with_zeros(number):
+        array = [c for c in str(int(number))]
         zeros = ["0" for _ in range(4 - len(array))]
         return "".join(zeros + array)
 
@@ -289,10 +289,11 @@ class BottleneckFlowRewardMultiAgentEnv(BottleneckMultiAgentEnv):
                     outflow_all = self.k.vehicle.get_outflow_rate(500)
                     outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
                     outflow_human = outflow_all - outflow_rl
-                    fused = "{}{}".format(self.fill_with_zeros(str(outflow_human)),
-                                          self.fill_with_zeros(str(outflow_rl)))
+                    fused = "{}{}".format(self.fill_with_zeros(outflow_human),
+                                          self.fill_with_zeros(outflow_rl))
                     fused = int(fused)
-                    rl_agent_rewards = {rl_id: fused for rl_id in self.k.vehicle.get_rl_ids()}
+                    print("*"*50, '\n', outflow_rl, " + ", outflow_human, " = ", outflow_all)
+                    rl_agent_rewards = {rl_id: outflow_all for rl_id in self.k.vehicle.get_rl_ids()}
                 else:
                     rl_agent_rewards = {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
             else:

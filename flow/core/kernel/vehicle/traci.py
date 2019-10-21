@@ -197,7 +197,7 @@ class TraCIVehicle(KernelVehicle):
             self._arrived_ids.append(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS])
             # num arrived used for our reward function
             self._num_rl_arrived.append(len(list(
-                filter(lambda car_id: car_id in self.__rl_ids, sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))))
+                filter(lambda car_id: "rl" in car_id, sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))))
 
         # update the "headway", "leader", and "follower" variables
         for veh_id in self.__ids:

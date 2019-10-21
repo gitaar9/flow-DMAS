@@ -166,7 +166,7 @@ flow_params = dict(
 
 
 # SET UP EXPERIMENT
-def setup_exps(flow_params):
+def setup_exps(flow_params, evaluate=False):
     """Create the relevant components of a multiagent RLlib experiment.
 
     Parameters
@@ -201,6 +201,7 @@ def setup_exps(flow_params):
     config['env_config']['flow_params'] = flow_json
     config['env_config']['run'] = alg_run
 
+    flow_params['env'].evaluate = evaluate
     create_env, env_name = make_create_env(params=flow_params, version=0)
 
     # register as rllib env
