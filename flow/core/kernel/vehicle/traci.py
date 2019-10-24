@@ -1,5 +1,5 @@
 """Script containing the TraCI vehicle kernel class."""
-import traceback, sys, time
+import traceback
 
 from flow.core.kernel.vehicle import KernelVehicle
 import traci.constants as tc

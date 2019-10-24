@@ -40,7 +40,7 @@ SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.25
+AV_FRAC = 0.30
 
 vehicles = VehicleParams()
 vehicles.add(
@@ -243,7 +243,7 @@ if __name__ == '__main__':
                 'training_iteration': 500
             },
             'config': config,
-            #'local_dir': '/content/gdrive/My Drive/',
+            'local_dir': '/content/gdrive/My Drive/',
             # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
             **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
         },
