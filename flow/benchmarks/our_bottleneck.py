@@ -22,7 +22,7 @@ SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.1
+AV_FRAC = 0.5
 
 vehicles = VehicleParams()
 vehicles.add(
