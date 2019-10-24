@@ -32,15 +32,15 @@ from flow.controllers import RLController, ContinuousRouter, \
 # time horizon of a single rollout
 HORIZON = 1000
 # number of parallel workers
-N_CPUS = 4
+N_CPUS = 8
 # number of rollouts per training iteration
-N_ROLLOUTS = N_CPUS * 8
+N_ROLLOUTS = N_CPUS * 4
 
 SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.50
+AV_FRAC = 0.25
 
 vehicles = VehicleParams()
 vehicles.add(

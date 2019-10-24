@@ -1,5 +1,5 @@
 """Script containing the TraCI vehicle kernel class."""
-import traceback
+import traceback, sys, time
 
 from flow.core.kernel.vehicle import KernelVehicle
 import traci.constants as tc
@@ -479,11 +479,33 @@ class TraCIVehicle(KernelVehicle):
         return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
 
     def get_rl_outflow_rate(self, time_span):
-        """See parent class."""
-        if len(self._num_rl_arrived) == 0:
+        """Adaption of get_outflow_rate() (above) to compute outflow rate of Rl vehicles only."""
+
+        if len(self._arrived_ids) == 0:
             return 0
-        num_outflow = self._num_rl_arrived[-int(time_span / self.sim_step):]
-        return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
+
+        # Compute RL outflow number over last X time steps:
+        # Iterate through X most recent time steps and check for which IDs have arrived
+        # For each 'rl_...'-id that has arrived, increment the nr of arrived RL vehicles
+
+        num_rl_outflow, recent_history = 0, self._arrived_ids[-int(time_span / self.sim_step):]
+
+        for arrival_batch in recent_history:
+            if len(arrival_batch) == 0:
+                # There's nothing to increment
+                continue
+            for veh_id in arrival_batch:
+                # Among arrived vehicles, count rl-ones
+                if 'rl' in veh_id:
+                    num_rl_outflow += 1
+
+        #print('Arrived ids:')
+        #print(self._arrived_ids[-int(time_span / self.sim_step):])
+        #print('Left AVs: ' + str(num_rl_outflow))
+
+        # Compute RL outflow rate as in general get_outflow_rate() above (but based on RL outflow only)
+        return 3600 * num_rl_outflow / (len(recent_history) * self.sim_step)
+
 
     def get_num_arrived(self):
         """See parent class."""

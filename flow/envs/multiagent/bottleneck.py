@@ -432,7 +432,6 @@ class BottleneckDanielMultiAgentEnv(BottleneckMultiAgentEnv):
             return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
 
         # Average outflow over last 10 steps, divided 2000 * scaling.
-        # TODO: NEXT: try own reward computation
         outflow_reward = 2/3 * self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
         rl_agent_rewards = {}
