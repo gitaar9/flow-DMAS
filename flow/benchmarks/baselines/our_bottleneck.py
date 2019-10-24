@@ -97,7 +97,7 @@ def our_bottleneck_baseline(num_runs, render=True):
 
 
 if __name__ == '__main__':
-    runs = 10  # number of simulations to average over
+    runs = 100  # number of simulations to average over
     mean, std, array = our_bottleneck_baseline(num_runs=runs, render=False)
 
     print('---------')
