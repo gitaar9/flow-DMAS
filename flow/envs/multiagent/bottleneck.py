@@ -432,14 +432,14 @@ class BottleneckDanielMultiAgentEnv(BottleneckMultiAgentEnv):
             return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
 
         # Average outflow over last 10 steps, divided 2000 * scaling.
-        outflow_reward = 2/3 * self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        outflow_reward = 4/3 * self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
         rl_agent_rewards = {}
         if rl_actions:
             for rl_id in self.k.vehicle.get_rl_ids():
                 # Reward desired velocity in own edge + the total outflow
                 edge_num = self.k.vehicle.get_edge(rl_id)
-                rl_agent_rewards[rl_id] = 1/3 * rewards.desired_velocity(self, edge_list=[edge_num],
+                rl_agent_rewards[rl_id] = 2/3 * rewards.desired_velocity(self, edge_list=[edge_num],
                                                                          use_only_rl_ids=True) + outflow_reward
 
         return rl_agent_rewards
