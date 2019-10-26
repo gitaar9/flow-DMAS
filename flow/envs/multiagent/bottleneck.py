@@ -263,6 +263,20 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
 
         return obs
 
+    def compute_evaluation_reward(self):
+        if self.time_counter == self.env_params.horizon:
+            outflow_all = self.k.vehicle.get_outflow_rate(500)
+            outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
+            outflow_human = outflow_all - outflow_rl
+
+            with open("result", "a") as f:
+                f.write("{} + {} = {}  {:.2f}%\n".format(outflow_rl, outflow_human, outflow_all,
+                                                         outflow_rl / outflow_all * 100))
+
+            return {rl_id: outflow_rl / outflow_all for rl_id in self.k.vehicle.get_rl_ids()}
+        else:
+            return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
+
     def compute_reward(self, rl_actions, **kwargs):
         """
         :param rl_actions: The output of the PPO network based on the last steps observation per agent
@@ -273,28 +287,16 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         if kwargs['fail']:
             return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
 
+        if self.env_params.evaluate:
+            return self.compute_evaluation_reward()
+
         rl_agent_rewards = {}
         if rl_actions:
-            if self.env_params.evaluate:
-                if self.time_counter == self.env_params.horizon:
-                    outflow_all = self.k.vehicle.get_outflow_rate(500)
-                    outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
-                    outflow_human = outflow_all - outflow_rl
+            # Average outflow over last 10 steps, divided 2000 * scaling.
+            # total_outflow = self.k.vehicle.get_outflow_rate(10 * self.sim_step)
+            rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
-                    with open("result", "a") as f:
-                        f.write("{} + {} = {}  {:.2f}%\n".format(outflow_rl, outflow_human, outflow_all,
-                                                                 outflow_rl/outflow_all*100))
-
-                    rl_agent_rewards = {rl_id: outflow_rl/outflow_all for rl_id in self.k.vehicle.get_rl_ids()}
-                else:
-                    rl_agent_rewards = {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
-            else:
-                # Average outflow over last 10 steps, divided 2000 * scaling.
-                total_outflow = self.k.vehicle.get_outflow_rate(10 * self.sim_step)
-                rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step)
-                outflow_reward = (rl_outflow - (total_outflow * .5)) / (2000.0 * self.scaling)
-
-                rl_agent_rewards = {rl_id: outflow_reward for rl_id in self.k.vehicle.get_rl_ids()}
+            rl_agent_rewards = {rl_id: rl_outflow for rl_id in self.k.vehicle.get_rl_ids()}
 
         return rl_agent_rewards
 

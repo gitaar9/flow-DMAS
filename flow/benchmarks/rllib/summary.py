@@ -1,4 +1,7 @@
-with open('result', 'r') as f:
+import sys
+
+print("Summary of {}".format(sys.argv[1]))
+with open(sys.argv[1], 'r') as f:
     lines = f.readlines()
     percs = [0, 0, 0, 0]
     #0 2 4 5
