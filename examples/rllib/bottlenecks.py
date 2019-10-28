@@ -134,7 +134,7 @@ def setup_exps():
     config['num_workers'] = N_CPUS
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['gamma'] = 0.999  # discount rate
-    config['model'].update({'fcnet_hiddens': [32, 32]})
+    config['model'].update({'fcnet_hiddens': [256, 256]})
     config['use_gae'] = True
     config['lambda'] = 0.97
     config['kl_target'] = 0.02
