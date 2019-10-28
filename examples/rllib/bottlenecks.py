@@ -126,7 +126,7 @@ def setup_exps():
     str
         name of the gym environment to be trained
     dict
-        training configuration parameters
+        training configuration parameter
     """
     alg_run = 'PPO'
     agent_cls = get_agent_class(alg_run)
