@@ -70,6 +70,9 @@ class TraCIVehicle(KernelVehicle):
         self._num_rl_arrived = []
         self._arrived_ids = []
 
+        # IDs of the cars that collided this time time-step
+        self.collided_ids = []
+
         # whether or not to automatically color vehicles
         try:
             self._color_vehicles = sim_params.color_vehicles
@@ -126,6 +129,10 @@ class TraCIVehicle(KernelVehicle):
             vehicle_obs[veh_id] = \
                 self.kernel_api.vehicle.getSubscriptionResults(veh_id)
         sim_obs = self.kernel_api.simulation.getSubscriptionResults()
+
+        # Keep track of who was in a collision
+        if len(sim_obs[tc.VAR_TELEPORT_STARTING_VEHICLES_IDS]) > 0:
+            self.collided_ids = self.kernel_api.simulation.getCollidingVehiclesIDList()
 
         # remove exiting vehicles from the vehicles class
         for veh_id in sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]:
@@ -663,6 +670,10 @@ class TraCIVehicle(KernelVehicle):
         if isinstance(veh_id, (list, np.ndarray)):
             return [self.get_lane_followers(vehID, error) for vehID in veh_id]
         return self.__vehicles.get(veh_id, {}).get("lane_followers", error)
+
+    def get_collided_ids(self):
+        """Made by Ewout"""
+        return self.collided_ids
 
     def _multi_lane_headways(self):
         """Compute multi-lane data for all vehicles.

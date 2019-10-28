@@ -290,20 +290,25 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         :param kwargs: Can contain fail, to indicate that a crash happened
         :return: The individual reward for every agent
         """
-        # if a crash occurred everybody gets 0
-        if kwargs['fail']:
-            return {rl_id: 0 for rl_id in self.k.vehicle.get_rl_ids()}
-
-        if self.env_params.evaluate:
-            return self.compute_evaluation_reward()
-
         rl_agent_rewards = {}
+
+        # Thomas needs to change the following:
         if rl_actions:
             # Average outflow over last 10 steps, divided 2000 * scaling.
             # total_outflow = self.k.vehicle.get_outflow_rate(10 * self.sim_step)
             rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
 
             rl_agent_rewards = {rl_id: rl_outflow for rl_id in self.k.vehicle.get_rl_ids()}
+        # Thomas needs to change the above ^
+
+        # Colliders get punished
+        if kwargs['fail']:
+            for collider_id in self.k.vehicle.get_collided_ids():
+                if collider_id in rl_agent_rewards:
+                    rl_agent_rewards[collider_id] -= 2
+
+        if self.env_params.evaluate:
+            return self.compute_evaluation_reward()
 
         return rl_agent_rewards
 
