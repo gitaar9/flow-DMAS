@@ -6,7 +6,7 @@ import numpy as np
 import time
 import os
 
-from flow.core.util import emission_to_csv
+from flow.core.util import emission_to_csv, calculate_human_rl_timesteps_spent_in_simulation
 
 
 class Experiment:
@@ -212,6 +212,8 @@ class MultiAgentExperiment(Experiment):
         mean_vels = []
         std_vels = []
         outflows = []
+        rl_times = []
+        human_times = []
         for i in range(num_runs):
             vel = np.zeros(num_steps)
             logging.info("Iter #" + str(i))
@@ -222,8 +224,7 @@ class MultiAgentExperiment(Experiment):
                 state, reward, done, _ = self.env.step(rl_actions(state))
                 vel[j] = np.mean(
                     self.env.k.vehicle.get_speed(self.env.k.vehicle.get_ids()))
-                # ret += 0 if not reward else reward
-                # ret_list.append(reward)
+
                 ret_list.append(0)
 
                 if done['__all__']:
@@ -236,6 +237,11 @@ class MultiAgentExperiment(Experiment):
             mean_vels.append(np.mean(vel))
             std_vels.append(np.std(vel))
             outflows.append(self.env.k.vehicle.get_outflow_rate(int(500)))
+
+            rl_t, h_t = calculate_human_rl_timesteps_spent_in_simulation(self.env.k.vehicle._departed_ids,
+                                                                         self.env.k.vehicle._arrived_ids)
+            rl_times.extend(rl_t)
+            human_times.extend(h_t)
             print("Round {0}, return: {1}".format(i, ret))
 
         info_dict["returns"] = rets
@@ -244,6 +250,8 @@ class MultiAgentExperiment(Experiment):
         info_dict["per_step_returns"] = ret_lists
         info_dict["outflows"] = outflows
         info_dict["mean_outflows"] = np.mean(outflows)
+        info_dict["rl_times"] = rl_times
+        info_dict["human_times"] = human_times
 
         print("Average, std return: {}, {}".format(
             np.mean(outflows), np.std(outflows)))

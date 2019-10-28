@@ -102,3 +102,7 @@ if __name__ == "__main__":
     trials = run_experiments({
         flow_params["exp_tag"]: exp_tag
     })
+
+
+# python our_ppo_runner.py --checkpoint /home/gitaar9/AI/DMAS_RESULTS/PPO_BottleneckThijsMultiAgentEnv-v0_0_2019-10-24_new_2_av_perc_50/checkpoint_160/checkpoint-160 --benchmark_name our_bottleneck --num_rollouts 8
+# python our_ppo_runner.py --checkpoint /home/gitaar9/AI/DMAS_RESULTS/PPO_BottleneckThijsMultiAgentEnv-v0_0_2019-10-21_new_1/checkpoint_150/checkpoint-150 --benchmark_name our_bottleneck_10_perc_av --num_rollouts 8

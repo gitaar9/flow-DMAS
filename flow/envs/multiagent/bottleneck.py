@@ -1,5 +1,6 @@
 import numpy as np
 from flow.core import rewards
+from flow.core.util import calculate_human_rl_timesteps_spent_in_simulation
 from flow.envs import BottleneckEnv
 from flow.envs.multiagent import MultiEnv
 from gym.spaces import Box
@@ -269,9 +270,15 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
             outflow_rl = self.k.vehicle.get_rl_outflow_rate(500)
             outflow_human = outflow_all - outflow_rl
 
+            # average timesteps spent in simulation
+            rl_times, human_times = calculate_human_rl_timesteps_spent_in_simulation(self.k.vehicle._departed_ids,
+                                                                                     self.k.vehicle._arrived_ids)
+
             with open("result", "a") as f:
-                f.write("{} + {} = {}  {:.2f}%\n".format(outflow_rl, outflow_human, outflow_all,
-                                                         outflow_rl / outflow_all * 100))
+                f.write("{} + {} = {}  {:.2f}% {:.2f} {:.2f}\n".format(outflow_rl, outflow_human, outflow_all,
+                                                                       outflow_rl / outflow_all * 100,
+                                                                       np.mean(rl_times),
+                                                                       np.mean(human_times)))
 
             return {rl_id: outflow_rl / outflow_all for rl_id in self.k.vehicle.get_rl_ids()}
         else:

@@ -93,14 +93,17 @@ def our_bottleneck_baseline(num_runs, render=True):
 
     results = exp.run(num_runs, env_params.horizon)
 
-    return np.mean(results['outflows']), np.std(results['outflows']), results['outflows']
+    return np.mean(results['outflows']), np.std(results['outflows']), results['outflows'], results['rl_times'], \
+           results['human_times']
 
 
 if __name__ == '__main__':
     runs = 100  # number of simulations to average over
-    mean, std, array = our_bottleneck_baseline(num_runs=runs, render=False)
+    mean, std, array, rl_times, human_times = our_bottleneck_baseline(num_runs=runs, render=False)
 
     print('---------')
     print(array)
     print('The average outflow, std. deviation over 500 seconds '
           'across {} runs is {}, {}'.format(runs, mean, std))
+    print('There were {} timed rl cars and the average timesteps for human cars was {:.2f}+-{:.2f}'.format(
+        len(rl_times), np.mean(human_times), np.std(human_times)))
