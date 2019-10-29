@@ -305,7 +305,7 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         if kwargs['fail']:
             for collider_id in self.k.vehicle.get_collided_ids():
                 if collider_id in rl_agent_rewards:
-                    rl_agent_rewards[collider_id] -= 2
+                    rl_agent_rewards[collider_id] -= 10
 
         if self.env_params.evaluate:
             return self.compute_evaluation_reward()
