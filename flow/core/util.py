@@ -106,6 +106,13 @@ def find_arrived_time(arrived_ids, car_id):
     return None
 
 
+def find_departed_time(departed_ids, car_id):
+    for t, cars_departed_at_t in reversed(list(enumerate(departed_ids))):
+        if car_id in cars_departed_at_t:
+            return t
+    return None
+
+
 def calculate_human_rl_timesteps_spent_in_simulation(departed_ids, arrived_ids, from_timestep=500):
     rl_times = []
     human_times = []

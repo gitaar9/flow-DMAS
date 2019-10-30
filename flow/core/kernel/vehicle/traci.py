@@ -1,18 +1,21 @@
 """Script containing the TraCI vehicle kernel class."""
+import collections
+import itertools
 import traceback
+import warnings
+from bisect import bisect_left
+from copy import deepcopy
 
-from flow.core.kernel.vehicle import KernelVehicle
+import numpy as np
 import traci.constants as tc
 from traci.exceptions import FatalTraCIError, TraCIException
-import numpy as np
-import collections
-import warnings
+
 from flow.controllers.car_following_models import SimCarFollowingController
-from flow.controllers.rlcontroller import RLController
 from flow.controllers.lane_change_controllers import SimLaneChangeController
-from bisect import bisect_left
-import itertools
-from copy import deepcopy
+from flow.controllers.rlcontroller import RLController
+from flow.core.kernel.vehicle import KernelVehicle
+from flow.core.util import find_departed_time
+
 
 # colors for vehicles
 WHITE = (255, 255, 255)
@@ -72,6 +75,9 @@ class TraCIVehicle(KernelVehicle):
 
         # IDs of the cars that collided this time time-step
         self.collided_ids = []
+
+        # Timesteps arrived rl agents spent in simulation (used for the reward function)
+        self.timed_rl_arrived = []
 
         # whether or not to automatically color vehicles
         try:
@@ -174,6 +180,7 @@ class TraCIVehicle(KernelVehicle):
             self._num_rl_arrived.clear()
             self._departed_ids.clear()
             self._arrived_ids.clear()
+            self.timed_rl_arrived.clear()
 
             # add vehicles from a network template, if applicable
             if hasattr(self.master_kernel.network.network,
@@ -201,10 +208,19 @@ class TraCIVehicle(KernelVehicle):
                 len(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS]))
             self._num_arrived.append(len(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))
             self._departed_ids.append(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS])
-            self._arrived_ids.append(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS])
+            arrived_ids_this_step = sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]
+            self._arrived_ids.append(arrived_ids_this_step)
             # num arrived used for our reward function
             self._num_rl_arrived.append(len(list(
                 filter(lambda car_id: "rl" in car_id, sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))))
+
+            # Save the time for use in reward of the rl agents that left the simulation
+            t = ()
+            for rl_id in filter(lambda car_id: "rl" in car_id, arrived_ids_this_step):
+                time_departed = find_departed_time(self._departed_ids, rl_id)
+                if time_departed:
+                    t += (self.time_counter - time_departed,)
+            self.timed_rl_arrived.append(t)
 
         # update the "headway", "leader", and "follower" variables
         for veh_id in self.__ids:
@@ -491,6 +507,14 @@ class TraCIVehicle(KernelVehicle):
             return 0
         num_outflow = self._num_rl_arrived[-int(time_span / self.sim_step):]
         return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
+
+    def get_new_reward(self):
+        total = self.timed_rl_arrived[-10:]
+        flattened = []
+        for list in total:
+            for item in list:
+                flattened.append(200 / item)
+        return sum(flattened)
 
     def get_num_arrived(self):
         """See parent class."""

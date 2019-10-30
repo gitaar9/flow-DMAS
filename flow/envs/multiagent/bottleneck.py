@@ -296,9 +296,10 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         if rl_actions:
             # Average outflow over last 10 steps, divided 2000 * scaling.
             # total_outflow = self.k.vehicle.get_outflow_rate(10 * self.sim_step)
-            rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+            # rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+            new_reward = self.k.vehicle.get_new_reward()
 
-            rl_agent_rewards = {rl_id: rl_outflow for rl_id in self.k.vehicle.get_rl_ids()}
+            rl_agent_rewards = {rl_id: new_reward for rl_id in self.k.vehicle.get_rl_ids()}
         # Thomas needs to change the above ^
 
         # Colliders get punished
