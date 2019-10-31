@@ -217,9 +217,8 @@ class TraCIVehicle(KernelVehicle):
             # Save the time for use in reward of the rl agents that left the simulation
             t = ()
             for rl_id in filter(lambda car_id: "rl" in car_id, arrived_ids_this_step):
-                time_departed = find_departed_time(self._departed_ids, rl_id)
-                if time_departed:
-                    t += (self.time_counter - time_departed,)
+                time_departed = find_departed_time(self._departed_ids, rl_id) or 0
+                t += (self.time_counter - time_departed,)
             self.timed_rl_arrived.append(t)
 
         # update the "headway", "leader", and "follower" variables
@@ -529,6 +528,9 @@ class TraCIVehicle(KernelVehicle):
             return self._arrived_ids[-1]
         else:
             return 0
+
+    def get_arrived_rl_ids(self):
+        return list(filter(lambda car_id: "rl" in car_id, self.get_arrived_ids()))
 
     def get_departed_ids(self):
         """See parent class."""
