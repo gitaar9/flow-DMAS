@@ -296,14 +296,10 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         """
         rl_agent_rewards = {}
 
-        if rl_actions:
-            # Average outflow over last 10 steps, divided 2000 * scaling.
-            # total_outflow = self.k.vehicle.get_outflow_rate(10 * self.sim_step)
-            # rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
-            rl_ids = self.k.vehicle.get_rl_ids()
-            new_reward = self.k.vehicle.get_new_reward() / len(rl_ids)
-            # print("{}\told: {}, new: {}, newer:{}\n".format(self.time_counter, rl_outflow, new_reward,
-            #                                                 new_reward / len(self.k.vehicle.get_rl_ids())))
+        rl_ids = self.k.vehicle.get_rl_ids()
+        if rl_actions and rl_ids:
+            # Some reward function based on the speed of the recently arrived AVs -  constant punishment for time
+            new_reward = (self.k.vehicle.get_new_reward() / len(rl_ids)) - 0.003
 
             rl_agent_rewards = {rl_id: new_reward for rl_id in rl_ids}
 
@@ -313,7 +309,7 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
                 if collider_id in rl_agent_rewards:
                     rl_agent_rewards[collider_id] -= 10
 
-        # reward agent that made it to the exit
+        # Reward agent that made it to the exit
         arrived_rl_ids = self.k.vehicle.get_arrived_rl_ids()
         if arrived_rl_ids:
             for arrived_agent_id, time in zip(arrived_rl_ids, self.k.vehicle.timed_rl_arrived[-1]):
