@@ -189,7 +189,7 @@ def setup_exps(flow_params, evaluate=False):
     config['num_workers'] = N_CPUS
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['gamma'] = 0.999  # discount rate
-    config['model'].update({'fcnet_hiddens': [64, 64]})
+    config['model'].update({'fcnet_hiddens': [256, 256]})
     config['lr'] = 9e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
