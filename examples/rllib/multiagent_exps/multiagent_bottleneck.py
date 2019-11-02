@@ -190,7 +190,7 @@ def setup_exps(flow_params, evaluate=False):
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['gamma'] = 0.999  # discount rate
     config['model'].update({'fcnet_hiddens': [64, 64]})
-    config['lr'] = 5e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
+    config['lr'] = 9e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
     config['simple_optimizer'] = True
@@ -244,7 +244,7 @@ if __name__ == '__main__':
                 'training_iteration': 500
             },
             'config': config,
-            'local_dir': '/content/gdrive/My Drive/',
+            # 'local_dir': '/content/gdrive/My Drive/',
             # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
             **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
         },

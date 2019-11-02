@@ -299,7 +299,8 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         rl_ids = self.k.vehicle.get_rl_ids()
         if rl_actions and rl_ids:
             # Some reward function based on the speed of the recently arrived AVs -  constant punishment for time
-            new_reward = (self.k.vehicle.get_new_reward() / len(rl_ids)) - 0.003
+            new_reward = (self.k.vehicle.get_new_reward() / len(rl_ids)) - 0.006
+            new_reward -= 0.003 * len(rl_ids)
 
             rl_agent_rewards = {rl_id: new_reward for rl_id in rl_ids}
 
