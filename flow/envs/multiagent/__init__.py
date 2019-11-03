@@ -8,7 +8,7 @@ from flow.envs.multiagent.ring.accel import MultiAgentAccelEnv
 from flow.envs.multiagent.traffic_light_grid import MultiTrafficLightGridPOEnv
 from flow.envs.multiagent.highway import MultiAgentHighwayPOEnv
 from flow.envs.multiagent.bottleneck import BottleneckMultiAgentEnv, BottleneckMultiAgentEnvFinal, \
-                                            BottleneckMultiAgentEnvOld
+                                            BottleneckMultiAgentEnvOld, BottleneckThijsMultiAgentEnv
 
 __all__ = ['MultiEnv', 'MultiAgentAccelEnv', 'MultiWaveAttenuationPOEnv',
            'MultiTrafficLightGridPOEnv', 'MultiAgentHighwayPOEnv', 'BottleneckMultiAgentEnv',
