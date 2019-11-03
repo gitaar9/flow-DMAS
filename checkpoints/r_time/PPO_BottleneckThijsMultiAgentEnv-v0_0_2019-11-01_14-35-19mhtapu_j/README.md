@@ -1,1 +1,1 @@
-Resuming cause we crashed
+Resuming as we disconnected from Google Colab.
