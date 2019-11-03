@@ -14,19 +14,25 @@ DMAS group A1:
 
 # Introduction
 
-By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. To install the project follow these steps:
-<ul>
-  <li>git clone https://github.com/gitaar9/flow-DMAS.git</li>
-  <li>git checkout thijs_improving_the_new_reward_function</li>
-  <li>follow the instructions in the "RUNNING_INSTRUCTIONS.sh" file (may want to open it in a text editor)</li>
-</ul>
+Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other README.md files are from the original repository and not our work.
 
-The following two files are created by us:
+By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following two files were created by us:
 <ul>
   <li>examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
   <li>flow/envs/multiagent/bottleneck.py</li>
+  <li>BENCHMARK FILE THIJS</li>
 </ul>
-Important to note, the "multiagent_bottleneck.py" is the file that should be ran, if one would want to train the model. The "bottleneck.py" holds the actual functionality, as the other file is mainly used for parameter setting. Additionally, our report can also be found on this page: "Report_alphaversion.pdf".
+The "multiagent_bottleneck.py" file is the main file to run, if one would want to train the model. The "bottleneck.py" file holds the environment classes that are used in the aforementioned main file, thus holding code for the state, action and reward. Furthermore, BENCHMARK FILE(S)! Additionally, our report can also be found on this page: "Report.pdf".
+
+# Train model
+In order to train a model Google Colab can be used. Following these instructions:
+<ul>
+    <li>Download the "Google_notebook.ipynb" found on this page</li>
+    <li>Go to the [Google Colab website](https://colab.research.google.com)</li>
+    <li>Log in to a Google account (if not logged in already)</li>
+    <li>Upload the file that was uploaded in step 1 (file > upload notebook > navigate to downloaded file and select)</li>
+    <li>Follow the instructions in the file that has just opened in the browser</li>
+</ul>
 
 # Visualization of the trained model
 
@@ -43,4 +49,4 @@ To visualize the simulation, follow these steps:
   <li>With the step button next to the play button, you can step through the simulation to get a better view of what the cars are doing.</li>
 </ul>
 
-The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library). Forcing the simulation to go beyond the initial ~200 steps will make yellow cars enter the simulation, currently the reason is unknown.
+The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library).
