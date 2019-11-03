@@ -38,8 +38,8 @@ In order to train a model Google Colab can be used. Following these instructions
 
 For visualization of the simulation there are two options. Firstly, we have uploaded two visualization videos to Youtube:
 <ul>
-  <li>Reward function r<sub>velocity</sub> with 50% AV: https://www.youtube.com/watch?v=O65Y8ObD3qI</li>
-  <li>Reward function r<sub>time</sub> with 10% AV: https://www.youtube.com/watch?v=O65Y8ObD3qI</li>
+  <li>Reward function r<sub>velocity</sub> with 50% AV: https://youtu.be/O65Y8ObD3qI</li>
+  <li>Reward function r<sub>time</sub> with 10% AV: https://youtu.be/np_Wf7nnfUo</li>
 </ul>
 
 Additionally one could render a visualisation, however this requires to install the project locally. In order to install the project follow these steps:
