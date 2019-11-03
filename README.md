@@ -8,15 +8,15 @@ DMAS group A1:
   <li>Thomas Bakker (s2468360)</li>  
 </ul>
 
-[Original github repository](https://github.com/flow-project/flow)
+[Original GitHub repository](https://github.com/flow-project/flow)
 
 [Reference paper](https://arxiv.org/abs/1710.05465)
 
 # Introduction
 
-Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other <code>README.md</code> files are from the original repository and not our work.
+Dear assessors, welcome to the GitHub page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other <code>README.md</code> files are from the original repository and not our work.
 
-By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files with code were created by us for creating the RL agents:
+By using and adjusting the above mentioned orignial GitHub repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files with code were created by us for creating the RL agents:
 <ul>
   <li><code>examples/rllib/multiagent_exps/multiagent_bottleneck.py</code></li>
   <li><code>flow/envs/multiagent/bottleneck.py</code></li>  
