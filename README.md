@@ -28,7 +28,7 @@ The <code>multiagent_bottleneck.py</code> file is the main file to run, if one w
 The following files hold code that were created by us in order to obtain results:
 
 <ul>
-  <li><code>flow/visualize/visualizer_rllib.py</code> 	<- Main file to obtain results</li>
+  <li><code>flow/visualize/visualizer_rllib.py</code> 	<- Main file to visualize results</li>
   <li><code>flow/benchmarks/baselines/our_bottleneck.py</code> 	<- Baseline variant of <code>flow/benchmarks/our_bottleneck.py</code> (file can be run)</li>
   <li><code>flow/benchmarks/our_bottleneck.py</code> 		<-  The main benchmark file</li>
   <li><code>flow/benchmarks/our_bottleneck_10_perc_av.py</code> 	<- Same as our_bottleneck.py but with 10% AVs</li>
@@ -83,4 +83,6 @@ The red cars are the cars controlled by the trained model, white cars are contro
 # Obtaining results
 
 Example of command in order to run the code for obtaining results, running from root of this project:
-<code>python3 flow/visualize/visualizer_rllib.py LOCATION NCHECKPOINT</code> EDDIIITT!!!!
+<code>python flow/benchmarks/rllib/our_ppo_runner.py --checkpoint CHECKPOINT_FILE --benchmark_name our_bottleneck --num_rollouts 8 --num_cpus 2</code><br>
+This would append the results for every completed simulation to a file called result. This result file can be summarized using <code>python flow/benchmarks/rllib/summary.py result</code><br>
+Obtaining the baseline results is a lot easier and can be done by running <code>python flow/benchmarks/baselines/our_bottleneck.py</code>
