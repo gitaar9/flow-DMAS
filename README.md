@@ -16,7 +16,7 @@ DMAS group A1:
 
 Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other README.md files are from the original repository and not our work.
 
-By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following two files were created by us:
+By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files were created by us:
 <ul>
   <li>examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
   <li>flow/envs/multiagent/bottleneck.py</li>
