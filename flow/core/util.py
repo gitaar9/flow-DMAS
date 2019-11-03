@@ -97,3 +97,32 @@ def emission_to_csv(emission_path, output_path=None):
         dict_writer = csv.DictWriter(output_file, keys)
         dict_writer.writeheader()
         dict_writer.writerows(out_data)
+
+
+def find_arrived_time(arrived_ids, car_id):
+    for t, cars_arrived_at_t in enumerate(arrived_ids):
+        if car_id in cars_arrived_at_t:
+            return t
+    return None
+
+
+def find_departed_time(departed_ids, car_id):
+    for t, cars_departed_at_t in reversed(list(enumerate(departed_ids))):
+        if car_id in cars_departed_at_t:
+            return t
+    return None
+
+
+def calculate_human_rl_timesteps_spent_in_simulation(departed_ids, arrived_ids, from_timestep=500):
+    rl_times = []
+    human_times = []
+    for t_departed, cars_departed_at_t in enumerate(departed_ids):
+        for car_id in cars_departed_at_t:
+            t_arrived = find_arrived_time(arrived_ids[from_timestep:], car_id)
+            if t_arrived is not None:
+                time_in_simulation = (t_arrived + from_timestep) - t_departed
+                if "rl" in car_id:
+                    rl_times.append(time_in_simulation)
+                else:
+                    human_times.append(time_in_simulation)
+    return rl_times, human_times

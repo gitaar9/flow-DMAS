@@ -34,13 +34,13 @@ HORIZON = 1000
 # number of parallel workers
 N_CPUS = 4
 # number of rollouts per training iteration
-N_ROLLOUTS = N_CPUS * 8
+N_ROLLOUTS = N_CPUS * 4
 
 SCALING = 1
 NUM_LANES = 4 * SCALING  # number of lanes in the widest highway
 DISABLE_TB = True
 DISABLE_RAMP_METER = True
-AV_FRAC = 0.50
+AV_FRAC = 0.10
 
 vehicles = VehicleParams()
 vehicles.add(
@@ -115,7 +115,7 @@ flow_params = dict(
     exp_tag="MultiAgentDesiredVelocity",
 
     # name of the flow environment the experiment is running on
-    env_name="BottleneckDanielMultiAgentEnv",
+    env_name="BottleneckMultiAgentEnvFinal",
 
     # name of the network class the experiment is running on
     network="BottleneckNetwork",
@@ -166,7 +166,7 @@ flow_params = dict(
 
 
 # SET UP EXPERIMENT
-def setup_exps(flow_params):
+def setup_exps(flow_params, evaluate=False):
     """Create the relevant components of a multiagent RLlib experiment.
 
     Parameters
@@ -189,8 +189,8 @@ def setup_exps(flow_params):
     config['num_workers'] = N_CPUS
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['gamma'] = 0.999  # discount rate
-    config['model'].update({'fcnet_hiddens': [64, 64]})
-    config['lr'] = 2e-5  # tune.grid_search([1e-5]) 2e-5 also worked great
+    config['model'].update({'fcnet_hiddens': [256, 256]})
+    config['lr'] = 2e-5
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'
     config['simple_optimizer'] = True
@@ -201,6 +201,7 @@ def setup_exps(flow_params):
     config['env_config']['flow_params'] = flow_json
     config['env_config']['run'] = alg_run
 
+    flow_params['env'].evaluate = evaluate
     create_env, env_name = make_create_env(params=flow_params, version=0)
 
     # register as rllib env
@@ -244,7 +245,6 @@ if __name__ == '__main__':
             },
             'config': config,
             'local_dir': '/content/gdrive/My Drive/',
-            # 'restore': '/home/ewout/ray_results/MultiAgentDesiredVelocity/PPO_BottleneckFlowRewardMultiAgentEnv-v0_0_2019-09-25_18-01-44cf8hnam1/checkpoint_100/checkpoint-100'
             **({"restore": sys.argv[1]} if len(sys.argv) > 1 else {})
         },
     })

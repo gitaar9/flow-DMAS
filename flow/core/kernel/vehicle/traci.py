@@ -1,18 +1,21 @@
 """Script containing the TraCI vehicle kernel class."""
+import collections
+import itertools
 import traceback
+import warnings
+from bisect import bisect_left
+from copy import deepcopy
 
-from flow.core.kernel.vehicle import KernelVehicle
+import numpy as np
 import traci.constants as tc
 from traci.exceptions import FatalTraCIError, TraCIException
-import numpy as np
-import collections
-import warnings
+
 from flow.controllers.car_following_models import SimCarFollowingController
-from flow.controllers.rlcontroller import RLController
 from flow.controllers.lane_change_controllers import SimLaneChangeController
-from bisect import bisect_left
-import itertools
-from copy import deepcopy
+from flow.controllers.rlcontroller import RLController
+from flow.core.kernel.vehicle import KernelVehicle
+from flow.core.util import find_departed_time
+
 
 # colors for vehicles
 WHITE = (255, 255, 255)
@@ -69,6 +72,12 @@ class TraCIVehicle(KernelVehicle):
         self._num_arrived = []
         self._num_rl_arrived = []
         self._arrived_ids = []
+
+        # IDs of the cars that collided this time time-step
+        self.collided_ids = []
+
+        # Timesteps arrived rl agents spent in simulation (used for the reward function)
+        self.timed_rl_arrived = []
 
         # whether or not to automatically color vehicles
         try:
@@ -127,6 +136,10 @@ class TraCIVehicle(KernelVehicle):
                 self.kernel_api.vehicle.getSubscriptionResults(veh_id)
         sim_obs = self.kernel_api.simulation.getSubscriptionResults()
 
+        # Keep track of who was in a collision
+        if len(sim_obs[tc.VAR_TELEPORT_STARTING_VEHICLES_IDS]) > 0:
+            self.collided_ids = self.kernel_api.simulation.getCollidingVehiclesIDList()
+
         # remove exiting vehicles from the vehicles class
         for veh_id in sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]:
             if veh_id in sim_obs[tc.VAR_TELEPORT_STARTING_VEHICLES_IDS]:
@@ -167,6 +180,7 @@ class TraCIVehicle(KernelVehicle):
             self._num_rl_arrived.clear()
             self._departed_ids.clear()
             self._arrived_ids.clear()
+            self.timed_rl_arrived.clear()
 
             # add vehicles from a network template, if applicable
             if hasattr(self.master_kernel.network.network,
@@ -194,10 +208,18 @@ class TraCIVehicle(KernelVehicle):
                 len(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS]))
             self._num_arrived.append(len(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))
             self._departed_ids.append(sim_obs[tc.VAR_DEPARTED_VEHICLES_IDS])
-            self._arrived_ids.append(sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS])
+            arrived_ids_this_step = sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]
+            self._arrived_ids.append(arrived_ids_this_step)
             # num arrived used for our reward function
             self._num_rl_arrived.append(len(list(
-                filter(lambda car_id: car_id in self.__rl_ids, sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))))
+                filter(lambda car_id: "rl" in car_id, sim_obs[tc.VAR_ARRIVED_VEHICLES_IDS]))))
+
+            # Save the time for use in reward of the rl agents that left the simulation
+            t = ()
+            for rl_id in filter(lambda car_id: "rl" in car_id, arrived_ids_this_step):
+                time_departed = find_departed_time(self._departed_ids, rl_id) or 0
+                t += (self.time_counter - time_departed,)
+            self.timed_rl_arrived.append(t)
 
         # update the "headway", "leader", and "follower" variables
         for veh_id in self.__ids:
@@ -485,6 +507,14 @@ class TraCIVehicle(KernelVehicle):
         num_outflow = self._num_rl_arrived[-int(time_span / self.sim_step):]
         return 3600 * sum(num_outflow) / (len(num_outflow) * self.sim_step)
 
+    def get_new_reward(self):
+        total = self.timed_rl_arrived[-10:]
+        flattened = []
+        for list in total:
+            for item in list:
+                flattened.append(200 / item)
+        return sum(flattened)
+
     def get_num_arrived(self):
         """See parent class."""
         if len(self._num_arrived) > 0:
@@ -498,6 +528,9 @@ class TraCIVehicle(KernelVehicle):
             return self._arrived_ids[-1]
         else:
             return 0
+
+    def get_arrived_rl_ids(self):
+        return list(filter(lambda car_id: "rl" in car_id, self.get_arrived_ids()))
 
     def get_departed_ids(self):
         """See parent class."""
@@ -663,6 +696,10 @@ class TraCIVehicle(KernelVehicle):
         if isinstance(veh_id, (list, np.ndarray)):
             return [self.get_lane_followers(vehID, error) for vehID in veh_id]
         return self.__vehicles.get(veh_id, {}).get("lane_followers", error)
+
+    def get_collided_ids(self):
+        """Made by Ewout"""
+        return self.collided_ids
 
     def _multi_lane_headways(self):
         """Compute multi-lane data for all vehicles.
