@@ -34,6 +34,15 @@ In order to train a model Google Colab can be used. Following these instructions
     <li>Follow the instructions in the file that has just opened in the browser</li>
 </ul>
 
+# Install project locally
+
+Before installing the project that there are two videos uploaded to Youtube, for visualization purposes. Additionally one can train the model using Google Colab. If one would still want to install the project locally, follow these steps:
+<ul>
+  <li>Git clone https://github.com/gitaar9/groupA1-coop-av-flow.git</li>
+  <li>Navigate to the base directory of git repo</li>
+  <li>Follow the instructions in the "Install_locally.sh" file (may want to open it in a text editor)
+</ul>
+
 # Visualization of the trained model
 
 For visualization of the simulation there are two options. Firstly, we have uploaded two visualization videos to Youtube:
@@ -42,14 +51,7 @@ For visualization of the simulation there are two options. Firstly, we have uplo
   <li>Reward function r<sub>time</sub> with 10% AV: https://youtu.be/np_Wf7nnfUo</li>
 </ul>
 
-Additionally one could render a visualisation, however this requires to install the project locally. In order to install the project follow these steps:
-<ul>
-  <li>Git clone https://github.com/gitaar9/groupA1-coop-av-flow.git</li>
-  <li>Navigate to the base directory of git repo</li>
-  <li>Follow the instructions in the "Install_locally.sh" file (may want to open it in a text editor)
-</ul>
-
-After installing, follow these steps in order to visualize:
+The second option is to render visualizations locally. This requires to install the project locally first. Afterwards follow these instructions:
 
 <ul>
   <li>Activate conde env: <code>conda activate flow</code></li>
