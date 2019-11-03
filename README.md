@@ -27,7 +27,7 @@ The "multiagent_bottleneck.py" file is the main file to run, if one would want t
 # Train model
 In order to train a model Google Colab can be used. Following these instructions:
 <ul>
-    <li>Download the "Google_notebook.ipynb" found on this page</li>
+    <li>Download the "Google_Colab.ipynb" found on this page</li>
     <li>Go to the Google Colab website: https://colab.research.google.com</li>
     <li>Log in to a Google account (if not logged in already)</li>
     <li>Upload the file that was uploaded in step 1 (file > upload notebook > navigate to downloaded file and select)</li>
@@ -36,9 +36,22 @@ In order to train a model Google Colab can be used. Following these instructions
 
 # Visualization of the trained model
 
-To visualize the simulation, follow these steps:
+For visualization of the simulation there are two options. Firstly, we have uploaded two visualization videos to Youtube:
 <ul>
+  <li>Reward function r<sub>velocity</sub> with 50% AV: https://www.youtube.com/watch?v=O65Y8ObD3qI</li>
+  <li>Reward function r<sub>time</sub> with 10% AV: https://www.youtube.com/watch?v=O65Y8ObD3qI</li>
+</ul>
+
+Additionally one could render a visualisation, however this requires to install the project locally. In order to install the project follow these steps:
+<ul>
+  <li>Git clone https://github.com/gitaar9/groupA1-coop-av-flow.git</li>
   <li>Navigate to the base directory of git repo</li>
+  <li>Follow the instructions in the "Install_locally.sh" file (may want to open it in a text editor)
+</ul>
+
+After installing, follow these steps in order to visualize:
+
+<ul>
   <li>Activate conde env: <code>conda activate flow</code></li>
   <li>
     Run sumo with the model stored at iteration 300:<br>
