@@ -186,8 +186,8 @@ def setup_exps(flow_params):
     config['train_batch_size'] = HORIZON * N_ROLLOUTS
     config['simple_optimizer'] = True
     config['gamma'] = 0.999  # discount rate
-    config['model'].update({'fcnet_hiddens': [256, 256]})
-    config['lr'] = tune.grid_search([4e-5])
+    config['model'].update({'fcnet_hiddens': [32, 32]})
+    config['lr'] = tune.grid_search([1e-5])
     config['horizon'] = HORIZON
     config['clip_actions'] = False
     config['observation_filter'] = 'NoFilter'

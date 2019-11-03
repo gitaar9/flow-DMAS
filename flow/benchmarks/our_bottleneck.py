@@ -97,7 +97,7 @@ flow_params = dict(
     exp_tag="bottleneck_multi_agent_benchmark",
 
     # name of the flow environment the experiment is running on
-    env_name="BottleneckThijsMultiAgentEnv",
+    env_name="BottleneckFinalMultiAgentEnv",
 
     # name of the network class the experiment is running on
     network="BottleneckNetwork",
