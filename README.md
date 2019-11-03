@@ -32,11 +32,8 @@ The following files hold code that were created by us in order to obtain results
   <li><code>flow/benchmarks/baselines/our_bottleneck.py</code> 	<- Baseline variant of <code>flow/benchmarks/our_bottleneck.py</code> (file can be run)</li>
   <li><code>flow/benchmarks/our_bottleneck.py</code> 		<-  The main benchmark file</li>
   <li><code>flow/benchmarks/our_bottleneck_10_perc_av.py</code> 	<- Same as our_bottleneck.py but with 10% AVs</li>
-  <li><code>flow/benchmarks/rllib/our_ppo_runner.py</code> 	<- The file to run the benchmark with PPO agents<li>
+  <li><code>flow/benchmarks/rllib/our_ppo_runner.py</code> 	<- The file to run the benchmark with PPO agents</li>
 </ul>
-
-Example of command in order to run the code for obtaining results, running from root of this project:
-<code>python3 flow/visualize/visualizer_rllib.py LOCATION NCHECKPOINT</code> EDDIIITT!!!!
 
 Additionally, our report can also be found on this page: <code>Report.pdf</code>.
 
@@ -82,3 +79,8 @@ The second option is to render visualizations locally. This requires to install 
 </ul>
 
 The red cars are the cars controlled by the trained model, white cars are controlled by a simple algorithm designed to mimick human behaviour (provided by the flow library).
+
+# Obtaining results
+
+Example of command in order to run the code for obtaining results, running from root of this project:
+<code>python3 flow/visualize/visualizer_rllib.py LOCATION NCHECKPOINT</code> EDDIIITT!!!!
