@@ -16,13 +16,29 @@ DMAS group A1:
 
 Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other <code>README.md</code> files are from the original repository and not our work.
 
-By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files with code were created by us:
+By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files with code were created by us for creating the RL agents:
 <ul>
-  <li>examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
-  <li>flow/envs/multiagent/bottleneck.py</li>
-  <li>flow/visualize/visualizer_rllib.py</li>
+  <li><code>examples/rllib/multiagent_exps/multiagent_bottleneck.py</code></li>
+  <li><code>flow/envs/multiagent/bottleneck.py</code></li>  
 </ul>
-The <code>multiagent_bottleneck.py</code> file is the main file to run, if one would want to train the model. The <code>bottleneck.py</code> file holds the environment classes that are used in the aforementioned main file, thus holding code for the state, action and reward. Furthermore, the <code>visualizer_rllib.py</code> is used to obtain the results. Additionally, our report can also be found on this page: <code>Report.pdf</code>.
+
+
+The <code>multiagent_bottleneck.py</code> file is the main file to run, if one would want to train the model. The <code>bottleneck.py</code> file holds the environment classes that are used in the aforementioned main file, thus holding code for the state, action and reward. 
+
+The following files hold code that were created by us in order to obtain results:
+
+<ul>
+  <li><code>flow/visualize/visualizer_rllib.py</code> 	<- Main file to obtain results</li>
+  <li><code>flow/benchmarks/baselines/our_bottleneck.py</code> 	<- Baseline variant of flow/benchmarks/our_bottleneck.py this file can be run</li>
+  <li><code>flow/benchmarks/our_bottleneck.py</code> 		<-  The main benchmark file</li>
+  <li><code>flow/benchmarks/our_bottleneck_10_perc_av.py</code> 	<- same as our_bottleneck.py but with 10% AVs</li>
+  <li><code>flow/benchmarks/rllib/our_ppo_runner.py</code> 	<- The file to run the benchmark with PPO agents<li>
+</ul>
+
+Example of command in order to run the code for obtaining results, running from root of this project:
+<code>python3 flow/visualize/visualizer_rllib.py LOCATION NCHECKPOINT</code> EDDIIITT!!!!
+
+Additionally, our report can also be found on this page: <code>Report.pdf</code>.
 
 # Train model
 In order to train a model Google Colab can be used. Following these instructions:
@@ -54,6 +70,7 @@ For visualization of the simulation there are two options. Firstly, we have uplo
 The second option is to render visualizations locally. This requires to install the project locally first. Afterwards follow these instructions:
 
 <ul>
+  <li>Navigate to the root of this project</li>
   <li>Activate conde env: <code>conda activate flow</code></li>
   <li>
     Run sumo with the model stored at iteration 300:<br>
