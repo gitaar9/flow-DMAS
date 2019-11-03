@@ -29,9 +29,9 @@ The following files hold code that were created by us in order to obtain results
 
 <ul>
   <li><code>flow/visualize/visualizer_rllib.py</code> 	<- Main file to obtain results</li>
-  <li><code>flow/benchmarks/baselines/our_bottleneck.py</code> 	<- Baseline variant of flow/benchmarks/our_bottleneck.py this file can be run</li>
+  <li><code>flow/benchmarks/baselines/our_bottleneck.py</code> 	<- Baseline variant of <code>flow/benchmarks/our_bottleneck.py</code> (file can be run)</li>
   <li><code>flow/benchmarks/our_bottleneck.py</code> 		<-  The main benchmark file</li>
-  <li><code>flow/benchmarks/our_bottleneck_10_perc_av.py</code> 	<- same as our_bottleneck.py but with 10% AVs</li>
+  <li><code>flow/benchmarks/our_bottleneck_10_perc_av.py</code> 	<- Same as our_bottleneck.py but with 10% AVs</li>
   <li><code>flow/benchmarks/rllib/our_ppo_runner.py</code> 	<- The file to run the benchmark with PPO agents<li>
 </ul>
 
