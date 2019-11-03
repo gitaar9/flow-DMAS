@@ -302,6 +302,10 @@ class BottleneckMultiAgentEnvFinal(BottleneckMultiAgentEnv):
 
         return rl_agent_rewards
 
+class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnvFinal):
+    """ For backwards compatibility """
+    pass
+
 
 class BottleneckMultiAgentEnvOld(BottleneckMultiAgentEnv):
     """BottleneckMultiAgentEnv.
