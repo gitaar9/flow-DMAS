@@ -12,4 +12,4 @@ from flow.envs.multiagent.bottleneck import BottleneckMultiAgentEnv, BottleneckM
 
 __all__ = ['MultiEnv', 'MultiAgentAccelEnv', 'MultiWaveAttenuationPOEnv',
            'MultiTrafficLightGridPOEnv', 'MultiAgentHighwayPOEnv', 'BottleneckMultiAgentEnv',
-           'BottleneckMultiAgentEnvFinal', 'BottleneckMultiAgentEnvOld']
+           'BottleneckMultiAgentEnvFinal', 'BottleneckMultiAgentEnvOld', 'BottleneckThijsMultiAgentEnv']
