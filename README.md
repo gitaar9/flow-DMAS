@@ -28,7 +28,7 @@ The "multiagent_bottleneck.py" file is the main file to run, if one would want t
 In order to train a model Google Colab can be used. Following these instructions:
 <ul>
     <li>Download the "Google_notebook.ipynb" found on this page</li>
-    <li>Go to the [Google Colab website](https://colab.research.google.com)</li>
+    <li>Go to the Google Colab website: https://colab.research.google.com</li>
     <li>Log in to a Google account (if not logged in already)</li>
     <li>Upload the file that was uploaded in step 1 (file > upload notebook > navigate to downloaded file and select)</li>
     <li>Follow the instructions in the file that has just opened in the browser</li>
