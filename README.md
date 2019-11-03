@@ -14,7 +14,7 @@ DMAS group A1:
 
 # Introduction
 
-Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other README.md files are from the original repository and not our work.
+Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other <code>README.md</code> files are from the original repository and not our work.
 
 By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files with code were created by us:
 <ul>
