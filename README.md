@@ -16,13 +16,13 @@ DMAS group A1:
 
 Dear assessors, welcome to the Github page of our project. The file you are currently reading is meant to explain all that is required to train, visualize and obtain results of our project. All other README.md files are from the original repository and not our work.
 
-By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files were created by us:
+By using and adjusting the above mentioned orignial github repository we constructed a multi agent traffic simulation, using reinforcement learning. The following files with code were created by us:
 <ul>
   <li>examples/rllib/multiagent_exps/multiagent_bottleneck.py</li>
   <li>flow/envs/multiagent/bottleneck.py</li>
-  <li>BENCHMARK FILE THIJS</li>
+  <li>flow/visualize/visualizer_rllib.py</li>
 </ul>
-The "multiagent_bottleneck.py" file is the main file to run, if one would want to train the model. The "bottleneck.py" file holds the environment classes that are used in the aforementioned main file, thus holding code for the state, action and reward. Furthermore, BENCHMARK FILE(S)! Additionally, our report can also be found on this page: "Report.pdf".
+The <code>multiagent_bottleneck.py</code> file is the main file to run, if one would want to train the model. The <code>bottleneck.py</code> file holds the environment classes that are used in the aforementioned main file, thus holding code for the state, action and reward. Furthermore, the <code>visualizer_rllib.py</code> is used to obtain the results. Additionally, our report can also be found on this page: "Report.pdf".
 
 # Train model
 In order to train a model Google Colab can be used. Following these instructions:
