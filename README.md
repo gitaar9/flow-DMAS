@@ -70,8 +70,8 @@ The second option is to render visualizations locally. This requires to install 
   <li>Navigate to the root of this project</li>
   <li>Activate conde env: <code>conda activate flow</code></li>
   <li>
-    Run sumo with the model stored at iteration 300:<br>
-    <code>python3 flow/visualize/visualizer_rllib.py trained_model_09-29 300</code>
+    Example command to visualize the 160th checkpoint of the r_velocity model:<br>
+    <code>python3 flow/visualize/visualizer_rllib.py checkpoints/r_velocity/PPO_BottleneckThijsMultiAgentEnv-v0_0_2019-10-24_11-42-2561p4zgee 160</code>
   </li>
   <li>In sumo click the green play button 3 times (we think this has to do with the fact we use 4 cores)</li>
   <li>When the play button is pressed the 4th time, the simulation will run (for an average of 200 steps)</li>
