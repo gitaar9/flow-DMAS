@@ -66,13 +66,6 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
         super().__init__(env_params, sim_params, network, simulator)
         self.max_speed = self.k.network.max_speed()
 
-    # def step(self, rl_actions):
-    #     ret = super().step(rl_actions)
-    #     print("Step {}\n\t{}\n\t{}\n\t{}\n\t{}".format(self.time_counter, self.k.vehicle.get_ids(),
-    #                                                    self.k.vehicle.get_rl_ids(), self.k.vehicle.get_human_ids(),
-    #                                                    self.k.vehicle.get_controlled_ids()))
-    #     return ret
-
     @property
     def observation_space(self):
         """See class definition."""
@@ -140,10 +133,8 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                 if not kwargs['fail']:
                     # Reward desired velocity in own edge
                     edge_num = self.k.vehicle.get_edge(rl_id)
-                    reward += rewards.desired_velocity(self, fail=kwargs['fail'], edge_list=[edge_num])
-
-                    # Reward own speed
-                    reward += self.k.vehicle.get_speed(rl_id) * 0.1
+                    reward += rewards.desired_velocity(self, fail=kwargs['fail'], edge_list=[edge_num],
+                                                       use_only_rl_ids=True)
 
                     # Punish own lane changing
                     if rl_id in rl_actions:
@@ -171,8 +162,11 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
 
         :param rl_actions: The output of the PPO network based on the last steps observation per agent
         """
+        rl_ids = self.k.vehicle.get_rl_ids()
         if rl_actions:  # in the warmup steps, rl_actions is None
             for rl_id, actions in rl_actions.items():
+                if rl_id not in rl_ids:
+                    continue
                 self.k.vehicle.apply_acceleration(rl_id, actions[0])
 
                 if self.time_counter <= self.env_params.additional_params['lane_change_duration'] \
@@ -180,7 +174,7 @@ class BottleneckMultiAgentEnv(MultiEnv, BottleneckEnv):
                     self.k.vehicle.apply_lane_change(str(rl_id), round(actions[1]))
 
 
-class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
+class BottleneckMultiAgentEnvFinal(BottleneckMultiAgentEnv):
 
     @property
     def observation_space(self):
@@ -207,9 +201,9 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
 
             self_lane = self.k.vehicle.get_lane(rl_id)
 
-            # Very ugly bug fix
+            # Some SUMO versions sometimes return a wrong lane id
             if self_lane > MAX_LANES or self_lane < 0:
-                print("SUMO returned very bad lane id")
+                print("SUMO returned bad lane id")
                 self_lane = 0
 
             self_observation = [
@@ -229,9 +223,6 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
             type_of_vehicles_behind = np.array([.5 if car_id in rl_ids else 1.
                                                 for car_id in self.k.vehicle.get_lane_followers(rl_id)])
 
-            # origs = (lane_headways.copy(), lane_tailways.copy(), vel_in_front.copy(), vel_behind.copy(),
-            #          type_of_vehicles_in_front.copy(), type_of_vehicles_behind.copy())
-
             # Pad the normalized features with -1s
             lane_headways = np.concatenate(([-1], lane_headways, [-1]))
             lane_tailways = np.concatenate(([-1], lane_tailways, [-1]))
@@ -249,18 +240,11 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
             type_of_vehicles_in_front = type_of_vehicles_in_front[self_lane - 1:self_lane + 2]
             type_of_vehicles_behind = type_of_vehicles_behind[self_lane - 1:self_lane + 2]
 
-            # Sometimes the
-
             relative_observation = np.concatenate((lane_headways, lane_tailways, vel_in_front, vel_behind,
                                                    type_of_vehicles_in_front, type_of_vehicles_behind))
-            # if len(relative_observation) != 18:
-            #     s_arrays = (lane_headways, lane_tailways, vel_in_front, vel_behind, type_of_vehicles_in_front,
-            #                 type_of_vehicles_behind)
-            #     print(self_lane)
-            #     # print('\n{}\n'.format("\n".join(map(str, origs))))
-            #     print('\n{}\n'.format("\n".join(map(str, s_arrays))))
 
             obs.update({rl_id: np.concatenate((self_observation, relative_observation))})
+        obs.update({rl_id: np.array([0] * 22) for rl_id in self.k.vehicle.get_arrived_rl_ids()})
 
         return obs
 
@@ -292,14 +276,14 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
         """
         rl_agent_rewards = {}
 
-        # Thomas needs to change the following:
-        if rl_actions:
-            # Average outflow over last 10 steps, divided 2000 * scaling.
-            # total_outflow = self.k.vehicle.get_outflow_rate(10 * self.sim_step)
-            rl_outflow = self.k.vehicle.get_rl_outflow_rate(10 * self.sim_step) / (2000.0 * self.scaling)
+        rl_ids = self.k.vehicle.get_rl_ids()
+        if rl_actions and rl_ids:
+            # Some reward function based on the speed of the recently arrived AVs -  constant punishment for time
+            new_reward = (self.k.vehicle.get_new_reward() / len(rl_ids)) - 0.006
+            # More punishment for the amount if AVs in the simulation
+            new_reward -= 0.003 * len(rl_ids)
 
-            rl_agent_rewards = {rl_id: rl_outflow for rl_id in self.k.vehicle.get_rl_ids()}
-        # Thomas needs to change the above ^
+            rl_agent_rewards = {rl_id: new_reward for rl_id in rl_ids}
 
         # Colliders get punished
         if kwargs['fail']:
@@ -307,13 +291,23 @@ class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnv):
                 if collider_id in rl_agent_rewards:
                     rl_agent_rewards[collider_id] -= 10
 
+        # Reward agent that made it to the exit
+        arrived_rl_ids = self.k.vehicle.get_arrived_rl_ids()
+        if arrived_rl_ids:
+            for arrived_agent_id, time in zip(arrived_rl_ids, self.k.vehicle.timed_rl_arrived[-1]):
+                rl_agent_rewards[arrived_agent_id] = 200 / time
+
         if self.env_params.evaluate:
             return self.compute_evaluation_reward()
 
         return rl_agent_rewards
 
+class BottleneckThijsMultiAgentEnv(BottleneckMultiAgentEnvFinal):
+    """ For backwards compatibility """
+    pass
 
-class BottleneckDanielMultiAgentEnv(BottleneckMultiAgentEnv):
+
+class BottleneckMultiAgentEnvOld(BottleneckMultiAgentEnv):
     """BottleneckMultiAgentEnv.
 
       Environment used to train vehicles to effectively pass through a
@@ -437,13 +431,6 @@ class BottleneckDanielMultiAgentEnv(BottleneckMultiAgentEnv):
             observation_arr = np.asarray(self_representation, dtype=float)
 
             obs[veh_id] = observation_arr  # Assign representation about self and surrounding cars to car's observation
-
-            # print('Self:')
-            # print(self_representation)
-            # print('Others:')
-            # print(others_representation)
-            # print('Combined:')
-            # print(observation_arr)
 
         return obs
 
